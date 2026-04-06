@@ -1,0 +1,5 @@
+ INFO:     127.0.0.1:54482 - "GET /api/dashboard/cross_section_summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59241 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59252 - "POST /api/refresh HTTP/1.1" 500 Internal Server Error
+ INFO:     127.0.0.1:64158 - "POST /api/refresh HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:60978 - "POST /api/refresh HTTP/1.1" 500 Internal Server Error

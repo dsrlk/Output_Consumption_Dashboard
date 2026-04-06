@@ -1,0 +1,49 @@
+INFO:     Will watch for changes in these directories: ['D:\\CONSUMPTION REPORT\\backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [13516] using StatReload
+C:\Users\diniru-expk\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\pydantic\_internal\_config.py:383: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+INFO:     Started server process [6668]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app\api\analytics.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [6668]
+C:\Users\diniru-expk\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\pydantic\_internal\_config.py:383: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+INFO:     Started server process [9820]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Error: (sqlite3.IntegrityError) UNIQUE constraint failed: dim_date.date_val
+[SQL: INSERT INTO dim_date (date_val, year, month, day, day_of_week, is_holiday) VALUES (?, ?, ?, ?, ?, ?)]
+[parameters: ('2026-03-30', 2026, 3, 30, 0, 0)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Refresh failed: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (sqlite3.IntegrityError) UNIQUE constraint failed: dim_date.date_val
+[SQL: INSERT INTO dim_date (date_val, year, month, day, day_of_week, is_holiday) VALUES (?, ?, ?, ?, ?, ?)]
+[parameters: ('2026-03-30', 2026, 3, 30, 0, 0)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+WARNING:  StatReload detected changes in 'app\services\etl_pipeline.py'. Reloading...
+Error: (sqlite3.IntegrityError) UNIQUE constraint failed: dim_date.date_val
+[SQL: INSERT INTO dim_date (date_val, year, month, day, day_of_week, is_holiday) VALUES (?, ?, ?, ?, ?, ?)]
+[parameters: ('2026-03-30', 2026, 3, 30, 0, 0)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Refresh failed: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (sqlite3.IntegrityError) UNIQUE constraint failed: dim_date.date_val
+[SQL: INSERT INTO dim_date (date_val, year, month, day, day_of_week, is_holiday) VALUES (?, ?, ?, ?, ?, ?)]
+[parameters: ('2026-03-30', 2026, 3, 30, 0, 0)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+Error: (sqlite3.IntegrityError) UNIQUE constraint failed: dim_date.date_val
+[SQL: INSERT INTO dim_date (date_val, year, month, day, day_of_week, is_holiday) VALUES (?, ?, ?, ?, ?, ?)]
+[parameters: ('2026-03-30', 2026, 3, 30, 0, 0)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Refresh failed: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (sqlite3.IntegrityError) UNIQUE constraint failed: dim_date.date_val
+[SQL: INSERT INTO dim_date (date_val, year, month, day, day_of_week, is_holiday) VALUES (?, ?, ?, ?, ?, ?)]
+[parameters: ('2026-03-30', 2026, 3, 30, 0, 0)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [9820]
