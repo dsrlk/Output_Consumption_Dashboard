@@ -147,6 +147,33 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
     }
   }
 
+  // ── DIAGNOSTIC (remove after fix confirmed) ──────────────────────────────
+  console.log('[KpiDetailPanel COLOR DEBUG]', {
+    kpi_name: kpi.kpi_name,
+    kpi_id: kpi.kpi_id,
+    isOutput_prop: isOutput,
+    'standardMeta?.category': standardMeta?.category,
+    'standardMeta?.period_type': standardMeta?.period_type,
+    standard,
+    'kpi.value': kpi.value,
+    'kpi.pre_computed_period_std': kpi.pre_computed_period_std,
+    'kpi.working_days': kpi.working_days,
+    viewMode,
+    isTonStd,
+    effectiveTotalStd,
+    colorBaseValue,
+    totalDev,
+    totalGood,
+    stdDev,
+    stdGood,
+    chartStd,
+    chartStdColor,
+    trend_length: trend.length,
+    avg,
+    periodTotal,
+  });
+  // ─────────────────────────────────────────────────────────────────────────
+
   const unit = kpi.unit || '';
   const rawUnit = unit.replace('/Ton', '').replace('per Ton', '').trim() || '';
 
