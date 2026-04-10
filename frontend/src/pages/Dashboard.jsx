@@ -77,8 +77,14 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
   // Deviation using computed total-period standard (per-ton std × total tons OR pre-computed standard)
   const effectiveTotalStd = (viewMode === 'total') ? (kpi.pre_computed_period_std ?? totalStdFromTon) : null;
 
-  const totalDev  = viewMode === 'total' && effectiveTotalStd != null && effectiveTotalStd !== 0 && periodTotal != null
-    ? ((periodTotal - effectiveTotalStd) / effectiveTotalStd) * 100 : null;
+  // For color determination, prefer kpi.value (pre-aggregated summary value, same as card)
+  // over periodTotal (re-derived from trend, filtered to days>0, which can differ slightly).
+  // This ensures the chart color always matches the KPI card color.
+  const kpiSummaryValue = typeof kpi.value === 'number' ? kpi.value : null;
+  const colorBaseValue  = kpiSummaryValue ?? periodTotal;  // prefer summary
+
+  const totalDev  = viewMode === 'total' && effectiveTotalStd != null && effectiveTotalStd !== 0 && colorBaseValue != null
+    ? ((colorBaseValue - effectiveTotalStd) / effectiveTotalStd) * 100 : null;
   const totalGood = totalDev != null ? (isOutput ? totalDev >= 0 : totalDev <= 0) : null;
   const absTotalDev = viewMode === 'total' && effectiveTotalStd != null && periodTotal != null ? periodTotal - effectiveTotalStd : null;
 
