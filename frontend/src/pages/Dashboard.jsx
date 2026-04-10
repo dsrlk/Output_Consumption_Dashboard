@@ -17,6 +17,8 @@ const fmtPct = (raw) => `${raw > 0 ? '+' : ''}${raw.toFixed(1)}%`;
 
 const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDate, endDate, onClose, isOutput, navigate, setViewMode, viewMode, totalWeightKg }) => {
   const panelRef = useRef(null);
+  // Stable per-instance unique ID to avoid SVG gradient ID collisions across charts
+  const gradientUid = useRef(`grad-${kpi.kpi_id}-${Math.random().toString(36).slice(2, 7)}`);
   const [trend, setTrend] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -321,7 +323,7 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trend} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id={`grad-${kpi.kpi_id}`} x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id={gradientUid.current} x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%"  stopColor={chartLineColor} stopOpacity={0.25} />
                       <stop offset="95%" stopColor={chartLineColor} stopOpacity={0}    />
                     </linearGradient>
@@ -341,7 +343,7 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
                       strokeDasharray="5 3" strokeWidth={1.5} />
                   )}
                   <Area type="monotone" dataKey="total" stroke={chartLineColor} strokeWidth={2}
-                    fill={`url(#grad-${kpi.kpi_id})`} dot={false} activeDot={{ r: 4 }} />
+                    fill={`url(#${gradientUid.current})`} dot={false} activeDot={{ r: 4 }} />
                   {trend.some(t => t.is_anomaly) && (
                     <Line type="monotone" dataKey={d => d.is_anomaly ? d.total : null}
                       stroke="#f59e0b" strokeWidth={0} dot={{ r: 5, fill: '#f59e0b', strokeWidth: 0 }} />
@@ -1149,7 +1151,7 @@ const Dashboard = () => {
                         <ResponsiveContainer width="100%" height="100%">
                           <ComposedChart data={pacingData} margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
                             <defs>
-                              <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                              <linearGradient id={`colorActual-${primaryKpi.kpi_id}-${selectedSection}`} x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor={isGood ? '#10b981' : '#ef4444'} stopOpacity={0.3}/>
                                 <stop offset="95%" stopColor={isGood ? '#10b981' : '#ef4444'} stopOpacity={0}/>
                               </linearGradient>
@@ -1168,7 +1170,7 @@ const Dashboard = () => {
                             />
                             <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                             <Line type="monotone" dataKey="target" stroke="var(--text-muted)" strokeWidth={2} strokeDasharray="5 5" dot={false} name="target" />
-                            <Area type="monotone" dataKey="actual" stroke={isGood ? '#10b981' : '#ef4444'} strokeWidth={3} fill="url(#colorActual)" activeDot={{ r: 6 }} name="actual" />
+                            <Area type="monotone" dataKey="actual" stroke={isGood ? '#10b981' : '#ef4444'} strokeWidth={3} fill={`url(#colorActual-${primaryKpi.kpi_id}-${selectedSection})`} activeDot={{ r: 6 }} name="actual" />
                           </ComposedChart>
                         </ResponsiveContainer>
                       </div>
@@ -1225,7 +1227,7 @@ const Dashboard = () => {
                         const isOver = pct > 100;
                         const isWarning = pct > 85;
                         
-                        const gradId = `gauge-grad-${kpiInfo.kpi_id}`;
+                        const gradId = `gauge-grad-${kpiInfo.kpi_id}-${selectedSection}-${selectedCategory}`;
                         
                         let stopStart, stopEnd;
                         if (isOver) {
@@ -1254,7 +1256,7 @@ const Dashboard = () => {
                                     <stop offset="0%" stopColor={stopStart} />
                                     <stop offset="100%" stopColor={stopEnd} />
                                   </linearGradient>
-                                  <filter id={`glow-${kpiInfo.kpi_id}`} x="-20%" y="-20%" width="140%" height="140%">
+                                  <filter id={`glow-${kpiInfo.kpi_id}-${selectedSection}-${selectedCategory}`} x="-20%" y="-20%" width="140%" height="140%">
                                     <feGaussianBlur stdDeviation="3" result="blur" />
                                     <feComposite in="SourceGraphic" in2="blur" operator="over" />
                                   </filter>
@@ -1262,7 +1264,7 @@ const Dashboard = () => {
                                 <path d={bg} fill="none" stroke="var(--bg-color)" strokeWidth="10" strokeLinecap="round" />
                                 {fill && (
                                   <>
-                                    <path d={fill} fill="none" stroke={`url(#${gradId})`} strokeWidth="10" strokeLinecap="round" filter={`url(#glow-${kpiInfo.kpi_id})`} opacity="0.6" transform="translate(0, 2)" />
+                                    <path d={fill} fill="none" stroke={`url(#${gradId})`} strokeWidth="10" strokeLinecap="round" filter={`url(#glow-${kpiInfo.kpi_id}-${selectedSection}-${selectedCategory})`} opacity="0.6" transform="translate(0, 2)" />
                                     <path d={fill} fill="none" stroke={`url(#${gradId})`} strokeWidth="10" strokeLinecap="round" />
                                   </>
                                 )}
