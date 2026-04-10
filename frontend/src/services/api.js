@@ -53,7 +53,7 @@ export const getStatus = async () => {
 // Filters
 export const getSections = async () => {
     const response = await api.get('/filters/sections');
-    return response.data.filter(s => s.name.toLowerCase() !== 'sales');
+    return response.data;
 }
 
 export const getKPIs = async (params = {}) => {

@@ -4,6 +4,9 @@ import { Filter, Zap, Info, Trophy, AlertTriangle, TrendingDown, Target, Buildin
 import { useFilters } from '../context/FilterContext';
 import CustomSelect from '../components/CustomSelect';
 import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, Cell, Legend, ReferenceLine } from 'recharts';
+import { BlurText } from '../components/animations/BlurText';
+import SpotlightCard from '../components/animations/SpotlightCard';
+import CountUp from '../components/animations/CountUp';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = (v, dp = 1) => v == null ? '—' : v.toLocaleString(undefined, { maximumFractionDigits: dp });
@@ -59,25 +62,40 @@ const Heatmap = ({ rows, dates }) => {
 
   if (!rows.length || !dates.length) return null;
 
-  const CELL_W   = Math.max(22, Math.min(44, Math.floor((window.innerWidth - 340) / dates.length)));
+  const CELL_W   = 42;
   const CELL_H   = 38;
-  const ROW_LABEL_W = 160;
-  const HEADER_H    = 36;
+  const ROW_LABEL_W = 140;
+  const HEADER_H    = 40;
 
   return (
-    <div style={{ overflowX: 'auto', overflowY: 'visible', position: 'relative' }}>
+    <div style={{ overflowX: 'auto', overflowY: 'visible', position: 'relative', width: '100%', paddingBottom: '0.5rem' }}>
       <Tooltip cell={hover} pos={pos} />
-      <div style={{ display: 'flex', paddingLeft: ROW_LABEL_W, marginBottom: '2px' }}>
+      
+      {/* Date Headers */}
+      <div style={{ display: 'flex', marginBottom: '2px', minWidth: 'min-content' }}>
+        <div style={{ 
+          width: ROW_LABEL_W, minWidth: ROW_LABEL_W, flexShrink: 0, 
+          position: 'sticky', left: 0, background: 'var(--card-bg)', zIndex: 4, 
+          borderRight: '1px solid var(--border-color)', boxShadow: '4px 0 16px rgba(0,0,0,0.04)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-start', paddingBottom: '6px', paddingLeft: '8px'
+        }}>
+          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Materials / KPI
+          </span>
+        </div>
         {dates.map(d => (
           <div key={d} style={{
-            width: CELL_W, minWidth: CELL_W, height: HEADER_H,
-            fontSize: '0.58rem', color: 'var(--text-muted)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transform: 'rotate(-45deg)', transformOrigin: 'center',
+            width: CELL_W, minWidth: CELL_W, height: HEADER_H, margin: '0 1px',
+            fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 600,
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '4px',
             flexShrink: 0, userSelect: 'none',
-          }}>{d.slice(5)}</div>
+          }}>
+            <span style={{ transform: 'rotate(-40deg)', transformOrigin: 'bottom center', paddingBottom: '5px' }}>{d.slice(5)}</span>
+          </div>
         ))}
       </div>
+
+      {/* Rows */}
       {rows.map((row, ri) => {
         const vals = row.values;
         const nonNull = vals.filter(v => v != null && v > 0);
@@ -88,46 +106,50 @@ const Heatmap = ({ rows, dates }) => {
         const sep = ri === 0 && rows.length > 1;
 
         return (
-          <React.Fragment key={row.kpi}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px', borderTop: sep ? '2px solid var(--border-color)' : undefined, paddingTop: sep ? '6px' : undefined }}>
-              <div style={{
-                width: ROW_LABEL_W, minWidth: ROW_LABEL_W, paddingRight: '12px',
-                fontSize: '0.75rem', fontWeight: isOutput ? 700 : 500,
-                color: isOutput ? 'var(--text-main)' : 'var(--text-muted)',
-                textAlign: 'right', flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px',
-              }}>
-                {isOutput && <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--text-main)', display: 'inline-block', flexShrink: 0 }} />}
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {row.kpi} {row.unit ? `(${row.unit})` : ''}
-                </span>
-              </div>
-              {vals.map((v, ci) => {
-                const hasData = v != null && v > 0;
-                const t = hasData ? (v - minV) / range : 0;
-                const bg = !hasData ? 'var(--border-color)' : isOutput ? outputColor(t) : consumColor(t);
-                const textColor = t > 0.55 ? '#fff' : 'var(--text-muted)';
-                return (
-                  <div
-                    key={ci}
-                    style={{
-                      width: CELL_W, minWidth: CELL_W, height: CELL_H, background: bg,
-                      borderRadius: '4px', margin: '0 1px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer', flexShrink: 0,
-                      transition: 'transform 0.1s, box-shadow 0.1s',
-                      fontSize: CELL_W >= 34 ? '0.6rem' : '0', color: textColor, fontWeight: 600, boxSizing: 'border-box'
-                    }}
-                    onMouseEnter={e => { setPos({ x: e.clientX, y: e.clientY }); setHover({ date: dates[ci], kpi: row.kpi, value: v, unit: row.unit, isOutput, pct: t }); }}
-                    onMouseMove={e => setPos({ x: e.clientX, y: e.clientY })}
-                    onMouseLeave={() => setHover(null)}
-                  >
-                    {CELL_W >= 34 && hasData ? (isOutput ? fmt(v, 0) : v >= 1000 ? `${(v / 1000).toFixed(1)}k` : fmt(v, 0)) : null}
-                  </div>
-                );
-              })}
+          <div key={row.kpi} style={{ display: 'flex', alignItems: 'center', marginBottom: '2px', minWidth: 'min-content', borderTop: sep ? '2px solid var(--border-color)' : undefined, paddingTop: sep ? '6px' : undefined }}>
+            <div style={{
+              width: ROW_LABEL_W, minWidth: ROW_LABEL_W, paddingLeft: '8px', paddingRight: '10px',
+              height: CELL_H + 'px', alignSelf: 'stretch',
+              fontSize: '0.72rem', fontWeight: isOutput ? 700 : 500,
+              color: isOutput ? 'var(--text-main)' : 'var(--text-muted)',
+              textAlign: 'left', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px',
+              position: 'sticky', left: 0, background: 'var(--card-bg)', zIndex: 2,
+              borderRight: '1px solid var(--border-color)',
+              boxShadow: '4px 0 16px rgba(0,0,0,0.06)'
+            }}>
+              {isOutput && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-main)', display: 'inline-block', flexShrink: 0 }} />}
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {row.kpi} {row.unit ? <span style={{opacity: 0.7}}>{`(${row.unit})`}</span> : ''}
+              </span>
             </div>
-          </React.Fragment>
+            
+            {vals.map((v, ci) => {
+              const hasData = v != null && v > 0;
+              const t = hasData ? (v - minV) / range : 0;
+              const bg = !hasData ? 'var(--border-color)' : isOutput ? outputColor(t) : consumColor(t);
+              const textColor = t > 0.55 ? '#fff' : 'var(--text-muted)';
+              
+              return (
+                <div
+                  key={ci}
+                  style={{
+                    width: CELL_W, minWidth: CELL_W, height: CELL_H, background: bg,
+                    borderRadius: '4px', margin: '0 1px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', flexShrink: 0,
+                    transition: 'transform 0.1s, box-shadow 0.1s',
+                    fontSize: '0.62rem', color: textColor, fontWeight: 700, boxSizing: 'border-box'
+                  }}
+                  onMouseEnter={e => { setPos({ x: e.clientX, y: e.clientY }); setHover({ date: dates[ci], kpi: row.kpi, value: v, unit: row.unit, isOutput, pct: t }); }}
+                  onMouseMove={e => setPos({ x: e.clientX, y: e.clientY })}
+                  onMouseLeave={() => setHover(null)}
+                >
+                  {hasData ? (isOutput ? fmt(v, 0) : v >= 1000 ? `${(v / 1000).toFixed(1)}k` : fmt(v, 0)) : null}
+                </div>
+              );
+            })}
+          </div>
         );
       })}
     </div>
@@ -183,7 +205,7 @@ const OverallView = ({ data, loading }) => {
         
         {/* Leader */}
         {rankedDepts[0]?.avgDev !== null && (
-          <div className="dribbble-card" style={{ background: 'linear-gradient(145deg, #ffffff 0%, #f0fdf4 100%)', borderColor: 'color-mix(in srgb, var(--success) 20%, transparent)' }}>
+          <SpotlightCard className="dribbble-card" style={{ flex: 1 }} spotlightColor="rgba(15, 23, 42, 0.08)">
             <div className="dribbble-header">
               <span className="dribbble-title" style={{ color: 'var(--success)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Trophy size={18} /> Most Efficient Department
@@ -195,11 +217,11 @@ const OverallView = ({ data, loading }) => {
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
               <TrendingDown size={16} color="var(--success)"/> Operating {Math.abs(fmt(rankedDepts[0].avgDev, 1))}% below allowed consumption limits
             </div>
-          </div>
+          </SpotlightCard>
         )}
 
         {/* Highest output */}
-        <div className="dribbble-card">
+        <SpotlightCard className="dribbble-card">
           <div className="dribbble-header">
             <span className="dribbble-title" style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Building size={16} /> Highest Production Volume
@@ -209,13 +231,13 @@ const OverallView = ({ data, loading }) => {
             {chartData.sort((a,b)=>b.output - a.output)[0]?.name || 'N/A'}
           </div>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            {fmt(chartData.sort((a,b)=>b.output - a.output)[0]?.output, 0)} MT Total Output
+            <CountUp to={chartData.sort((a,b)=>b.output - a.output)[0]?.output || 0} duration={0.8} /> MT Total Output
           </div>
-        </div>
+        </SpotlightCard>
       </div>
 
       {/* Main content grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 2fr) minmax(400px, 3fr)', gap: '1.5rem', alignItems: 'stretch' }}>
+      <div className="analytics-grid-two-col">
         
         {/* Output vs Consumption Chart */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem', marginBottom: 0 }}>
@@ -313,13 +335,16 @@ const Analytics = () => {
 
   // Load sections and unshift "overall"
   useEffect(() => {
+    let cancelled = false;
     getSections().then(d => {
+      if (cancelled) return;
       // Exclude generic '0' and drop pure sales sections
       const list = d.filter(s => s.id !== 0 && !s.name.toLowerCase().includes('sales'));
       const options = [{ id: 'overall', name: 'Overall Factory View' }, ...list];
       setSectionsList(options);
       if (options.length) setSelectedDept('overall');
     }).catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   // Clear stale data immediately when department changes so old data never shows
@@ -415,11 +440,11 @@ const Analytics = () => {
   return (
     <div>
       <div className="page-header" style={{ marginBottom: '1.5rem' }}>
-        <h1 className="page-title">Analytics</h1>
+        <BlurText className="page-title" text="Analytics" />
       </div>
 
       {/* Filters Bar — matches Dashboard layout */}
-      <div className="filters-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-end', marginBottom: '2.5rem' }}>
+      <div className="filters-bar">
         <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-main)', fontWeight: 700, fontSize: '0.95rem', paddingBottom: '0.65rem' }}>
           <Filter size={18} style={{ marginRight: '8px', color: 'var(--text-muted)' }} /> Filters
         </div>
@@ -488,7 +513,7 @@ const Analytics = () => {
 
           {/* Efficiency Details per Department */}
           {efficiencyKpis.length > 0 && (
-            <div className="dribbble-card">
+            <SpotlightCard className="dribbble-card">
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '12px', background: 'var(--bg-outer)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Zap size={18} />
@@ -502,28 +527,40 @@ const Analytics = () => {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '0.75rem' }}>
-                {efficiencyKpis.map((k, i) => {
-                  const isFirst = i === 0;
-                  const c = isFirst ? 'var(--primary)' : 'var(--text-main)';
+                {efficiencyKpis.map((k) => {
+                  // If deviation exists, color accordingly. Higher deviation = worse (usage > allowed).
+                  let c = 'var(--text-main)';
+                  let bg = 'var(--bg-outer)';
+                  
+                  if (k.deviation !== null && k.deviation !== undefined) {
+                    if (k.deviation > 0) {
+                      c = 'var(--danger)'; // Over-consuming
+                      bg = 'color-mix(in srgb, var(--danger) 15%, transparent)';
+                    } else if (k.deviation <= 0) {
+                      c = 'var(--success)'; // Efficient
+                      bg = 'color-mix(in srgb, var(--success) 15%, transparent)';
+                    }
+                  }
+
                   return (
-                    <div key={k.kpi_id} className="dribbble-card" style={{ padding: '1.25rem' }}>
+                    <SpotlightCard key={k.kpi_id} className="dribbble-card" style={{ padding: '1.25rem' }}>
                       <div className="dribbble-header">
                         <span className="dribbble-title" style={{ fontSize: '0.85rem' }}>{k.kpi_name}</span>
                       </div>
                       <div className="dribbble-value" style={{ fontSize: '2rem', marginBottom: '0.5rem', color: c }}>
-                        {fmt(k.value, 3)}
+                        <CountUp to={k.value} duration={0.8} />
                       </div>
                       <div className="dribbble-footer">
-                        <span className="dribbble-trend-pill neutral" style={{ background: 'var(--bg-outer)', color: c }}>
-                          {k.unit} per MT
+                        <span className="dribbble-trend-pill neutral" style={{ background: bg, color: c }}>
+                          {k.unit}
                         </span>
                         <span>over {fmt(k.total_weight_tons, 1)} MT</span>
                       </div>
-                    </div>
+                    </SpotlightCard>
                   );
                 })}
               </div>
-            </div>
+            </SpotlightCard>
           )}
         </>
       )}

@@ -38,26 +38,28 @@ const KpiRow = ({ kpi, sectionId, existingStandards, draftValues, draftPeriods, 
         <td style={{ fontWeight: 500 }}>{kpi.name}</td>
         <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{kpi.unit || '—'}</td>
         <td>
-          <CustomSelect 
-            value={period} 
-            onChange={val => setDraftPeriods(prev => ({ ...prev, [kpi.id]: val }))} 
-            options={[{ value: 'day', label: 'Per Day' }, { value: 'ton', label: 'Per Ton' }]} 
-            style={{ width: '115px' }} 
+          <CustomSelect
+            value={period}
+            onChange={val => setDraftPeriods(prev => ({ ...prev, [kpi.id]: val }))}
+            options={[{ value: 'day', label: 'Per Day' }, { value: 'ton', label: 'Per Ton' }]}
+            style={{ width: '115px' }}
           />
         </td>
         <td>
-          <input type="number" className="input-field"
-            style={{ width: '130px', padding: '0.35rem 0.5rem' }}
+          <input type="number"
+            style={{ width: '130px', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontSize: '0.82rem', fontWeight: 600, background: 'var(--card-bg)', color: 'var(--text-main)', transition: 'border-color 0.2s' }}
             placeholder="Enter value" value={draft}
             onChange={e => setDraftValues(prev => ({ ...prev, [kpi.id]: e.target.value }))}
-            onKeyDown={e => e.key === 'Enter' && handleSave(kpi)} />
+            onFocus={e => e.target.style.borderColor = 'var(--primary)'}
+            onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
+            onKeyDown={e => e.target.key === 'Enter' && handleSave(kpi)} />
         </td>
         <td style={{ fontWeight: 600 }}>
           {existingVal != null
             ? <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {existingVal.toLocaleString(undefined, { maximumFractionDigits: 3 })}
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>/ {existing.period_type === 'ton' ? 'ton' : 'day'}</span>
-              </span>
+              {existingVal.toLocaleString(undefined, { maximumFractionDigits: 3 })}
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>/ {existing.period_type === 'ton' ? 'ton' : 'day'}</span>
+            </span>
             : <span style={{ color: 'var(--text-muted)' }}>Not set</span>}
         </td>
         <td>
@@ -205,24 +207,24 @@ const DataHub = () => {
   const fileInputRef = useRef(null);
 
   const handleFileUpload = async (event) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-      setLoadingUpload(true);
-      try {
-          // Assuming uploadFile is imported from '../services/api'
-          const { uploadFile } = await import('../services/api');
-          await uploadFile(file);
-          await loadStatus();
-          setPage(0);
-          await loadRecords(0);
-      } catch (e) {
-          console.error("Upload failed:", e);
-          alert("File upload failed. Ensure it's a valid Excel file.");
-      } finally {
-          setLoadingUpload(false);
-          if (fileInputRef.current) fileInputRef.current.value = ''; // Reset input
-      }
+    setLoadingUpload(true);
+    try {
+      // Assuming uploadFile is imported from '../services/api'
+      const { uploadFile } = await import('../services/api');
+      await uploadFile(file);
+      await loadStatus();
+      setPage(0);
+      await loadRecords(0);
+    } catch (e) {
+      console.error("Upload failed:", e);
+      alert("File upload failed. Ensure it's a valid Excel file.");
+    } finally {
+      setLoadingUpload(false);
+      if (fileInputRef.current) fileInputRef.current.value = ''; // Reset input
+    }
   };
 
   const [page, setPage] = useState(0);
@@ -252,12 +254,14 @@ const DataHub = () => {
 
   useEffect(() => {
     if (!stdSection) return;
+    let cancelled = false;
     const load = async () => {
       try {
         const [kData, sData] = await Promise.all([
           getKPIs({ section_id: stdSection }),
           getStandards({ section_id: stdSection })
         ]);
+        if (cancelled) return;
         const filtered = kData.filter(k => k.category === 'Output' || k.category === 'Consumption');
         setKpiList(filtered);
         const stdMap = {};
@@ -273,6 +277,7 @@ const DataHub = () => {
       } catch (e) { console.error(e); }
     };
     load();
+    return () => { cancelled = true; };
   }, [stdSection]);
 
   const handleSave = async (kpi) => {
@@ -319,8 +324,8 @@ const DataHub = () => {
   // Reusable KPI row — defined at top level of file to avoid remount on re-render
 
   const GROUPS = [
-    { cat: 'Consumption', accent: '#dc2626', bg: 'rgba(220, 38, 38, 0.05)', text: 'var(--text-main)', pill: 'rgba(220, 38, 38, 0.1)', desc: 'Materials & resources consumed during production' },
-    { cat: 'Output',      accent: '#52525b', bg: 'rgba(82, 82, 91, 0.05)', text: 'var(--text-main)', pill: 'rgba(82, 82, 91, 0.1)', desc: 'Production volumes & efficiency metrics' },
+    { cat: 'Consumption', accent: 'var(--primary)', bg: 'color-mix(in srgb, var(--primary) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--primary) 8%, transparent)', desc: 'Materials & resources consumed during production' },
+    { cat: 'Output', accent: 'var(--text-main)', bg: 'color-mix(in srgb, var(--text-main) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--text-main) 8%, transparent)', desc: 'Production volumes & efficiency metrics' },
   ];
 
   return (
@@ -332,25 +337,25 @@ const DataHub = () => {
           <p className="page-description">Ingest Excel files, configure KPI benchmarks, and inspect raw data</p>
         </div>
         <div style={{ display: 'flex', gap: '0.8rem' }}>
-            <input 
-                type="file" 
-                accept=".xls,.xlsx" 
-                style={{ display: 'none' }} 
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-            />
-            <button 
-                className="btn btn-primary" 
-                onClick={() => fileInputRef.current?.click()} 
-                disabled={loadingUpload || loadingRefresh}
-                style={{ background: 'var(--primary)', color: 'white' }}
-            >
-              {loadingUpload ? 'Uploading...' : 'Upload Excel'}
-            </button>
-            <button className="btn" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)' }} onClick={handleRefresh} disabled={loadingRefresh || loadingUpload}>
-              <RefreshCw size={18} className={loadingRefresh ? 'spin' : ''} />
-              {loadingRefresh ? 'Scanning...' : 'Rescan Folder'}
-            </button>
+          <input
+            type="file"
+            accept=".xls,.xlsx"
+            style={{ display: 'none' }}
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+          />
+          <button
+            className="btn"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loadingUpload || loadingRefresh}
+            style={{ background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', padding: '0.65rem 1.25rem', fontWeight: 600, boxShadow: '0 4px 14px color-mix(in srgb, var(--primary) 30%, transparent)', transition: 'transform 0.2s' }}
+          >
+            {loadingUpload ? 'Uploading...' : 'Upload Excel'}
+          </button>
+          <button className="btn" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.65rem 1.25rem', fontWeight: 600, transition: 'all 0.2s' }} onClick={handleRefresh} disabled={loadingRefresh || loadingUpload}>
+            <RefreshCw size={18} className={loadingRefresh ? 'spin' : ''} style={{ color: 'var(--text-muted)' }} />
+            <span style={{ color: 'var(--text-main)' }}>{loadingRefresh ? 'Scanning...' : 'Rescan Folder'}</span>
+          </button>
         </div>
       </div>
 
@@ -359,15 +364,15 @@ const DataHub = () => {
         <div className="dashboard-grid" style={{ marginBottom: '1.5rem' }}>
           <div className="dribbble-card">
             <h3 className="card-title">Last Sync Status</h3>
-            <div className="card-value">
-              {status.status === 'Success' ? <span className="badge badge-success">{status.status}</span>
-               : status.status === 'Warning' ? <span className="badge badge-warning">{status.status}</span>
-               : <span className="badge badge-danger">{status.status}</span>}
+            <div className="card-value" style={{ marginTop: '0.75rem' }}>
+              {status.status === 'Success' ? <span style={{ background: 'color-mix(in srgb, #10b981 12%, transparent)', color: '#059669', border: '1px solid color-mix(in srgb, #10b981 30%, transparent)', padding: '5px 14px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{status.status}</span>
+                : status.status === 'Warning' ? <span style={{ background: 'color-mix(in srgb, #f59e0b 12%, transparent)', color: '#d97706', border: '1px solid color-mix(in srgb, #f59e0b 30%, transparent)', padding: '5px 14px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{status.status}</span>
+                  : <span style={{ background: 'color-mix(in srgb, #ef4444 12%, transparent)', color: '#dc2626', border: '1px solid color-mix(in srgb, #ef4444 30%, transparent)', padding: '5px 14px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{status.status}</span>}
             </div>
           </div>
           <div className="dribbble-card">
             <h3 className="card-title">Records Processed</h3>
-            <div className="card-value">{status.records_processed?.toLocaleString() || 0}</div>
+            <div className="card-value" style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.5rem' }}>{status.records_processed?.toLocaleString() || 0}</div>
           </div>
           <div className="dribbble-card">
             <h3 className="card-title">Last Sync Time</h3>
@@ -379,38 +384,43 @@ const DataHub = () => {
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid var(--border-color)', marginBottom: '1.5rem' }}>
-        {TABS.map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)} style={{
-            padding: '0.6rem 1.4rem', border: 'none', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600,
-            background: 'transparent', borderBottom: activeTab === tab ? '2px solid var(--primary)' : '2px solid transparent',
-            marginBottom: '-2px', color: activeTab === tab ? 'var(--primary)' : 'var(--text-muted)', transition: 'all 0.2s'
-          }}>
-            {tab === 'Benchmark Standards'
-              ? <><Target size={15} style={{ verticalAlign: 'middle', marginRight: '6px' }} />{tab}</>
-              : <><Database size={15} style={{ verticalAlign: 'middle', marginRight: '6px' }} />{tab}</>}
-          </button>
-        ))}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'rgba(15,23,42,0.03)', padding: '0.35rem', borderRadius: '9999px', border: '1px solid rgba(255,255,255,0.5)', width: 'fit-content', marginBottom: '1.75rem' }}>
+        {TABS.map(tab => {
+          const isActive = activeTab === tab;
+          return (
+            <button key={tab} onClick={() => setActiveTab(tab)} style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              padding: isActive ? '0.65rem 1.3rem' : '0.65rem',
+              borderRadius: '9999px', border: 'none', cursor: 'pointer',
+              fontSize: '0.85rem', fontWeight: 600, letterSpacing: '-0.01em',
+              background: isActive ? 'var(--card-bg)' : 'transparent',
+              color: isActive ? 'var(--primary)' : 'var(--text-muted)',
+              boxShadow: isActive ? '0 4px 16px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.03)' : 'none',
+              transition: 'all 0.25s cubic-bezier(0.16,1,0.3,1)',
+            }}>
+              {tab === 'Benchmark Standards' ? <Target size={16} strokeWidth={2.5} /> : <Database size={16} strokeWidth={2.5} />}
+              {isActive && <span>{tab}</span>}
+            </button>
+          );
+        })}
       </div>
 
       {/* ══ BENCHMARK STANDARDS ══ */}
       {activeTab === 'Benchmark Standards' && (
         <div>
           {/* Controls row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-            <div>
-              <h3 className="card-title" style={{ margin: '0 0 0.3rem' }}>KPI Benchmark Standards</h3>
-              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
-                Set a target per KPI. Choose <strong>Per Day</strong> (scaled automatically by working days) or <strong>Per Ton</strong> (for per-ton view). Dashboard will show 🟢 / 🔴 deviation indicators.
-              </p>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'flex-end' }}>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Department</span>
-              <CustomSelect 
-                value={String(stdSection)} 
-                onChange={val => setStdSection(val)} 
-                options={sectionsList.filter(s => s.name !== 'Sales').map(s => ({ value: String(s.id), label: s.name }))} 
-                style={{ width: '180px' }} 
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', background: 'var(--card-bg)', padding: '1rem 1.5rem', borderRadius: '14px', border: '1px solid var(--border-color)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Target size={18} style={{ color: 'var(--primary)' }} />
+              KPI Benchmark Standards
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Department:</span>
+              <CustomSelect
+                value={String(stdSection)}
+                onChange={val => setStdSection(val)}
+                options={sectionsList.filter(s => s.name !== 'Sales').map(s => ({ value: String(s.id), label: s.name }))}
+                style={{ width: '180px' }}
               />
             </div>
           </div>
@@ -418,14 +428,15 @@ const DataHub = () => {
           {/* Two separate group cards */}
           {GROUPS.map(({ cat, accent, bg, text, pill, desc }) => (
             <div key={cat} style={{
-              marginBottom: '1.75rem', borderRadius: '12px', overflow: 'hidden',
-              border: `1px solid ${accent}35`,
-              boxShadow: `0 2px 12px ${accent}15`
+              marginBottom: '2rem', borderRadius: '14px', overflow: 'hidden',
+              border: `1px solid color-mix(in srgb, ${accent} 20%, transparent)`,
+              boxShadow: `0 4px 20px color-mix(in srgb, ${accent} 5%, transparent)`,
+              background: 'var(--card-bg)'
             }}>
               {/* Group header */}
               <div style={{
-                background: bg, borderLeft: `5px solid ${accent}`,
-                padding: '0.9rem 1.25rem',
+                background: bg, borderBottom: `1px solid color-mix(in srgb, ${accent} 15%, transparent)`,
+                padding: '1rem 1.5rem',
                 display: 'flex', alignItems: 'center', gap: '1rem'
               }}>
                 <span style={{

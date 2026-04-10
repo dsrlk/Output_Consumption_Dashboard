@@ -67,6 +67,7 @@ def get_dashboard_summary(
 def get_trends(
     kpi_id: int,
     section_id: Optional[int] = None,
+    view_mode: str = 'total',
     db: Session = Depends(get_db),
     start_date: Optional[date] = None,
     end_date: Optional[date] = None
@@ -115,17 +116,48 @@ def get_trends(
             FactKPIValue.value > 0       # Exclude non-working days (zero production)
         )
         
-        if section_id:
+        if section_id and section_id > 0:
             query = query.filter(FactKPIValue.section_id == section_id)
         if start_date:
             query = query.filter(DimDate.date_val >= start_date)
         if end_date:
             query = query.filter(DimDate.date_val <= end_date)
             
-        results = query.group_by(DimDate.date_val).having(
+        results_raw = query.group_by(DimDate.date_val).having(
             func.sum(FactKPIValue.value) > 0  # Extra guard at group level
         ).order_by(DimDate.date_val).all()
-    
+        results = [(r.date_val, float(r.total)) for r in results_raw]
+        
+    # Scale by daily tonnage if view_mode is 'per_ton'
+    if view_mode == 'per_ton':
+        weight_kpis = db.query(DimKPI.id).filter(
+            DimKPI.name.in_(["Weight", "Total Weight"]), 
+            DimKPI.category == "Output"
+        ).all()
+        weight_kpi_ids = [k[0] for k in weight_kpis]
+        
+        if weight_kpi_ids:
+            wt_q = db.query(
+                DimDate.date_val,
+                func.sum(FactKPIValue.value)
+            ).join(FactKPIValue, DimDate.id == FactKPIValue.date_id) \
+             .filter(FactKPIValue.kpi_id.in_(weight_kpi_ids), FactKPIValue.value > 0)
+             
+            if section_id and section_id > 0:
+                wt_q = wt_q.filter(FactKPIValue.section_id == section_id)
+            if start_date: wt_q = wt_q.filter(DimDate.date_val >= start_date)
+            if end_date: wt_q = wt_q.filter(DimDate.date_val <= end_date)
+            
+            wt_results = wt_q.group_by(DimDate.date_val).having(func.sum(FactKPIValue.value) > 0).all()
+            daily_tons = {r[0]: float(r[1]) / 1000.0 for r in wt_results}
+            
+            normalized_results = []
+            for date_val, tot in results:
+                tons = daily_tons.get(date_val, 0)
+                if tons > 0:
+                    normalized_results.append((date_val, tot / tons))
+            results = normalized_results
+
     # Calculate 7-day moving average using pandas for ease
     if not results:
         return []
@@ -501,19 +533,52 @@ def get_category_per_ton(
 
     results = con_query.group_by(DimKPI.id).all()
 
+    # Step 3: Get working days and standards for deviation calculation
+    wd_q = (
+        db.query(func.count(func.distinct(DimDate.date_val)))
+        .select_from(FactKPIValue)
+        .join(DimDate, DimDate.id == FactKPIValue.date_id)
+        .join(DimKPI, DimKPI.id == FactKPIValue.kpi_id)
+        .filter(
+            FactKPIValue.section_id == section_id,
+            FactKPIValue.value > 0,
+            DimKPI.category == "Output"
+        )
+    )
+    if start_date: wd_q = wd_q.filter(DimDate.date_val >= start_date)
+    if end_date:   wd_q = wd_q.filter(DimDate.date_val <= end_date)
+    working_days = wd_q.scalar() or 0
+
+    std_rows = db.query(DimKPIStandard).filter(DimKPIStandard.section_id == section_id).all()
+    std_map = {r.kpi_id: r for r in std_rows}
+    results = con_query.group_by(DimKPI.id).all()
+
     output = []
     for r in results:
         if r.kpi_name.lower() in EXCLUDE_NAMES:
             continue
         total = float(r.total_sum) if r.total_sum else 0
         per_ton = round(total / total_weight_tons, 4) if total_weight_tons else 0
+
+        std = std_map.get(r.id)
+        deviation = None
+        period_std = None
+        if std:
+            if std.period_type == "ton" and total_weight_tons:
+                period_std = std.standard_value * total_weight_tons
+            elif std.period_type == "day" and working_days:
+                period_std = std.standard_value * working_days
+            if period_std and period_std > 0:
+                deviation = round(((total - period_std) / period_std) * 100, 1)
+
         output.append({
             "kpi_id": r.id,
             "kpi_name": r.kpi_name,
             "unit": f"{r.unit}/Ton" if r.unit else "per Ton",
             "value": per_ton,
             "total_weight_tons": round(total_weight_tons, 2) if total_weight_tons else 0,
-            "aggregation": "per_ton"
+            "aggregation": "per_ton",
+            "deviation": deviation
         })
 
     return output
@@ -532,7 +597,8 @@ def get_standards(
             DimKPI.name.label('kpi_name'),
             DimKPI.unit,
             DimKPI.category,
-        ).join(DimKPI, DimKPI.id == DimKPIStandard.kpi_id).all()
+            DimSection.name.label('section_name')
+        ).join(DimKPI, DimKPI.id == DimKPIStandard.kpi_id).join(DimSection, DimSection.id == DimKPIStandard.section_id).all()
 
         output = []
 
@@ -551,8 +617,8 @@ def get_standards(
             total = sum(r.standard_value for r in rows if r.period_type == dominant_type)
             return {"standard_value": total, "period_type": dominant_type, "category": rows[0].category}
 
-        # ── Corrugator MT: aggregate all "Weight" (Output) standards across sections ──
-        weight_stds = [r for r in all_stds if r.kpi_name == "Weight" and r.category == "Output"]
+        # ── Corrugator MT: aggregate all "Weight" (Output) standards across Corrugator section ──
+        weight_stds = [r for r in all_stds if r.kpi_name == "Weight" and r.category == "Output" and r.section_name == "Corrugator"]
         if weight_stds:
             agg = _aggregate_stds(weight_stds)
             scaled_val = agg["standard_value"] / 1000  # KG → MT

@@ -8,12 +8,14 @@ import {
 } from 'recharts';
 import { useFilters } from '../context/FilterContext';
 import CustomSelect from '../components/CustomSelect';
+import BlurText from '../components/animations/BlurText';
+import SpotlightCard from '../components/animations/SpotlightCard';
+import CountUp from '../components/animations/CountUp';
 
 // ── Helper: format %
 const fmtPct = (raw) => `${raw > 0 ? '+' : ''}${raw.toFixed(1)}%`;
 
-// ── KPI Detail Panel ──────────────────────────────────────────────────────────
-const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDate, endDate, onClose, isOutput, navigate, totalWeightKg }) => {
+const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDate, endDate, onClose, isOutput, navigate, setViewMode, viewMode, totalWeightKg }) => {
   const panelRef = useRef(null);
   const [trend, setTrend] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,15 +44,18 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
 
   useEffect(() => {
     setLoading(true);
+    let cancelled = false;
     getTrends(kpi.kpi_id, {
       section_id: selectedSection,
+      view_mode: viewMode,
       ...(startDate ? { start_date: startDate } : {}),
       ...(endDate   ? { end_date:   endDate   } : {}),
     })
-      .then(d => setTrend(d))
-      .catch(() => setTrend([]))
-      .finally(() => setLoading(false));
-  }, [kpi.kpi_id, selectedSection, startDate, endDate]);
+      .then(d => { if (!cancelled) setTrend(d); })
+      .catch(() => { if (!cancelled) setTrend([]); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [kpi.kpi_id, selectedSection, startDate, endDate, viewMode]);
 
   // Stats from trend data
   const values   = trend.map(t => t.total).filter(v => v != null && v > 0);
@@ -60,15 +65,20 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
   const minVal   = values.length ? Math.min(...values) : null;
   const maxVal   = values.length ? Math.max(...values) : null;
 
-  // Deviation from daily standard — only valid for daily standards vs daily avg
-  const stdDev  = !isTonStd && standard != null && standard !== 0 && avg != null
+  // Deviation from direct standard (useful when standard unit matches view mode)
+  const isMatchingStd = ((isTonStd && viewMode === 'per_ton') || (!isTonStd && viewMode === 'total')) && kpi.pre_computed_period_std == null;
+  const stdDev  = isMatchingStd && standard != null && standard !== 0 && avg != null
     ? ((avg - standard) / standard) * 100 : null;
   const stdGood = stdDev != null ? (isOutput ? stdDev >= 0 : stdDev <= 0) : null;
+  const absStdDev = isMatchingStd && standard != null && avg != null ? avg - standard : null;
 
-  // Deviation using computed total-period standard (per-ton std × total tons)
-  const totalDev  = totalStdFromTon != null && totalStdFromTon !== 0 && periodTotal != null
-    ? ((periodTotal - totalStdFromTon) / totalStdFromTon) * 100 : null;
+  // Deviation using computed total-period standard (per-ton std × total tons OR pre-computed standard)
+  const effectiveTotalStd = (viewMode === 'total') ? (kpi.pre_computed_period_std ?? totalStdFromTon) : null;
+
+  const totalDev  = viewMode === 'total' && effectiveTotalStd != null && effectiveTotalStd !== 0 && periodTotal != null
+    ? ((periodTotal - effectiveTotalStd) / effectiveTotalStd) * 100 : null;
   const totalGood = totalDev != null ? (isOutput ? totalDev >= 0 : totalDev <= 0) : null;
+  const absTotalDev = viewMode === 'total' && effectiveTotalStd != null && periodTotal != null ? periodTotal - effectiveTotalStd : null;
 
   // ── Per-ton fetch: get actual consumption/ton + total weight for the period ─
   const [perTonData,    setPerTonData]    = useState(null);
@@ -77,14 +87,16 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
   useEffect(() => {
     if (!isTonStd) { setPerTonData(null); return; }
     setPerTonLoading(true);
+    let cancelled = false;
     getCategoryPerTon({
       section_id: selectedSection,
       ...(startDate ? { start_date: startDate } : {}),
       ...(endDate   ? { end_date:   endDate   } : {}),
     })
-      .then(rows => setPerTonData(rows.find(r => r.kpi_id === kpi.kpi_id) ?? null))
-      .catch(() => setPerTonData(null))
-      .finally(() => setPerTonLoading(false));
+      .then(rows => { if (!cancelled) setPerTonData(rows.find(r => r.kpi_id === kpi.kpi_id) ?? null); })
+      .catch(() => { if (!cancelled) setPerTonData(null); })
+      .finally(() => { if (!cancelled) setPerTonLoading(false); });
+    return () => { cancelled = true; };
   }, [isTonStd, kpi.kpi_id, selectedSection, startDate, endDate]);
 
   const perTonValue = perTonData?.value ?? null;
@@ -93,8 +105,47 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
     ? ((perTonValue - standard) / standard) * 100 : null;
   const tonGood     = tonDev != null ? (isOutput ? tonDev >= 0 : tonDev <= 0) : null;
 
+  // Chart Reference Line Calculation
+  let chartStd = null;
+  let chartStdColor = '#ef4444'; 
+  let chartStdFill = '#dc2626';
+
+  if (viewMode === 'total') {
+    if (kpi.pre_computed_period_std != null) {
+      // It's a pre-computed TOTAL period budget. Divide by days to get a flat daily average line
+      const activeDays = kpi.working_days > 0 ? kpi.working_days : trend.length;
+      if (activeDays > 0) {
+        chartStd = kpi.pre_computed_period_std / activeDays;
+        chartStdColor = totalGood ? '#22c55e' : '#ef4444';
+        chartStdFill = totalGood ? '#16a34a' : '#dc2626';
+      }
+    } else if (!isTonStd && standard != null) {
+      chartStd = standard;
+      chartStdColor = stdGood ? '#22c55e' : '#ef4444';
+      chartStdFill = stdGood ? '#16a34a' : '#dc2626';
+    } else if (isTonStd && totalStdFromTon != null) {
+      const activeDays = kpi.working_days > 0 ? kpi.working_days : trend.length;
+      if (activeDays > 0) {
+        chartStd = totalStdFromTon / activeDays;
+        chartStdColor = totalGood ? '#22c55e' : '#ef4444';
+        chartStdFill = totalGood ? '#16a34a' : '#dc2626';
+      }
+    }
+  } else if (viewMode === 'per_ton') {
+    if (isTonStd && standard != null) {
+      chartStd = standard;
+      chartStdColor = tonGood ? '#22c55e' : '#ef4444';
+      chartStdFill = tonGood ? '#16a34a' : '#dc2626';
+    }
+  }
+
   const unit = kpi.unit || '';
   const rawUnit = unit.replace('/Ton', '').replace('per Ton', '').trim() || '';
+
+  let chartLineColor = "var(--text-main)"; // default black
+  if (chartStd != null) {
+     chartLineColor = chartStdColor;
+  }
 
   return (
     <div ref={panelRef} style={{
@@ -139,56 +190,71 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
 
               {/* Average vs Standard */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '140px' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Daily Volume Avg</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  {viewMode === 'per_ton' ? 'Daily Avg / Ton' : 'Daily Volume Avg'}
+                </span>
                 <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>
                   {avg != null ? avg.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}
-                  {rawUnit && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '3px' }}>{rawUnit}</span>}
+                  {<span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '3px' }}>{viewMode === 'per_ton' ? unit : rawUnit}</span>}
                 </span>
               </div>
 
               {/* Standard value — show for daily standards; for per-ton show computed total */}
-              {standard != null && !isTonStd && (
+              {standard != null && isMatchingStd && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '140px' }}>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Benchmark</span>
                   <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>
                     {standard.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                    {unit && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '3px' }}>{unit}</span>}
+                    {unit && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '3px' }}>{viewMode === 'per_ton' ? unit : rawUnit}</span>}
                   </span>
                 </div>
               )}
-              {isTonStd && totalStdFromTon != null && (
+              {viewMode === 'total' && effectiveTotalStd != null && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '160px' }}>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Benchmark</span>
                   <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>
-                    {totalStdFromTon.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    {unit && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '3px' }}>{unit}</span>}
+                    {effectiveTotalStd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    {rawUnit && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '3px' }}>{rawUnit}</span>}
                   </span>
                   <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', opacity: 0.8 }}>
-                    {standard.toLocaleString(undefined, { maximumFractionDigits: 4 })} {unit}/ton × {totalWeightTons?.toLocaleString(undefined, { maximumFractionDigits: 1 })}t
+                    {kpi.pre_computed_period_std != null ? 'Pre-computed Global Target' : `${standard.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${unit} × ${totalWeightTons?.toLocaleString(undefined, { maximumFractionDigits: 1 })}t`}
                   </span>
                 </div>
               )}
 
               {/* vs Benchmark */}
-              {isTonStd && totalDev != null ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: totalGood ? 'rgba(34,197,94,0.07)' : 'rgba(239,68,68,0.07)', border: `1.5px solid ${totalGood ? '#86efac' : '#fca5a5'}`, borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '160px' }}>
-                  <span style={{ fontSize: '0.7rem', color: totalGood ? '#15803d' : '#b91c1c', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>vs Total Benchmark</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.15rem', color: totalGood ? '#15803d' : '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    {totalGood ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
-                    {fmtPct(totalDev)}
-                  </span>
-                  <span style={{ fontSize: '0.68rem', color: totalGood ? '#16a34a' : '#dc2626', opacity: 0.8 }}>
-                    Actual: {periodTotal?.toLocaleString(undefined, { maximumFractionDigits: 0 })} {unit}
-                  </span>
-                </div>
-              ) : isTonStd ? (
+              {viewMode === 'total' && totalDev != null ? (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: totalGood ? 'rgba(34,197,94,0.07)' : 'rgba(239,68,68,0.07)', border: `1.5px solid ${totalGood ? '#86efac' : '#fca5a5'}`, borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '160px' }}>
+                    <span style={{ fontSize: '0.7rem', color: totalGood ? '#15803d' : '#b91c1c', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>vs Total Benchmark</span>
+                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: totalGood ? '#15803d' : '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {totalGood ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
+                      {fmtPct(totalDev)}
+                    </span>
+                    <span style={{ fontSize: '0.68rem', color: totalGood ? '#16a34a' : '#dc2626', opacity: 0.8 }}>
+                      Actual: {periodTotal?.toLocaleString(undefined, { maximumFractionDigits: 0 })} {rawUnit}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '130px' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Variance</span>
+                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: absTotalDev > 0 ? (isOutput ? '#16a34a' : '#dc2626') : (isOutput ? '#dc2626' : '#16a34a') }}>
+                      {absTotalDev > 0 ? '+' : ''}{absTotalDev.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      <span style={{ fontSize: '0.72rem', marginLeft: '3px' }}>{rawUnit}</span>
+                    </span>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>From Target</span>
+                  </div>
+                </>
+              ) : (isTonStd || kpi.pre_computed_period_std != null) && viewMode === 'total' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'rgba(245,158,11,0.06)', border: '1.5px dashed #f59e0b55', borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '200px' }}>
                   <span style={{ fontSize: '0.7rem', color: '#92400e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>vs Benchmark</span>
                   <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#b45309' }}>Per-ton standard set</span>
                   <span style={{ fontSize: '0.68rem', color: '#92400e', opacity: 0.85 }}>
-                    Std: {standard?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {unit}/ton — 
+                    Std: {standard?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {unit} — 
                     <button
-                      onClick={() => navigate('/', { state: { viewMode: 'per_ton' } })}
+                      onClick={() => {
+                        if (setViewMode) setViewMode('per_ton');
+                        else navigate('/', { state: { viewMode: 'per_ton' } });
+                      }}
                       style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#d97706', fontSize: '0.68rem', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: '2px' }}
                     >
                       switch to Per Ton view →
@@ -196,16 +262,26 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
                   </span>
                 </div>
               ) : stdDev != null ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: stdGood ? 'rgba(34,197,94,0.07)' : 'rgba(239,68,68,0.07)', border: `1.5px solid ${stdGood ? '#86efac' : '#fca5a5'}`, borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '160px' }}>
-                  <span style={{ fontSize: '0.7rem', color: stdGood ? '#15803d' : '#b91c1c', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>vs Benchmark</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.15rem', color: stdGood ? '#15803d' : '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    {stdGood ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
-                    {fmtPct(stdDev)}
-                  </span>
-                  <span style={{ fontSize: '0.68rem', color: stdGood ? '#16a34a' : '#dc2626', opacity: 0.8 }}>
-                    Std: {standard.toLocaleString(undefined, { maximumFractionDigits: 2 })} {unit}
-                  </span>
-                </div>
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: stdGood ? 'rgba(34,197,94,0.07)' : 'rgba(239,68,68,0.07)', border: `1.5px solid ${stdGood ? '#86efac' : '#fca5a5'}`, borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '160px' }}>
+                    <span style={{ fontSize: '0.7rem', color: stdGood ? '#15803d' : '#b91c1c', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>vs Benchmark</span>
+                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: stdGood ? '#15803d' : '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {stdGood ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
+                      {fmtPct(stdDev)}
+                    </span>
+                    <span style={{ fontSize: '0.68rem', color: stdGood ? '#16a34a' : '#dc2626', opacity: 0.8 }}>
+                      Std: {standard.toLocaleString(undefined, { maximumFractionDigits: 2 })} {unit}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '130px' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Variance</span>
+                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: absStdDev > 0 ? (isOutput ? '#16a34a' : '#dc2626') : (isOutput ? '#dc2626' : '#16a34a') }}>
+                      {absStdDev > 0 ? '+' : ''}{absStdDev.toLocaleString(undefined, { maximumFractionDigits: 3 })}
+                      <span style={{ fontSize: '0.72rem', marginLeft: '3px' }}>{viewMode === 'per_ton' ? unit : rawUnit}</span>
+                    </span>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>From Target</span>
+                  </div>
+                </>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'var(--bg-color)', border: '1.5px dashed var(--border-color)', borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '160px' }}>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>vs Benchmark</span>
@@ -246,8 +322,8 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
                 <AreaChart data={trend} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id={`grad-${kpi.kpi_id}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="var(--primary)" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}    />
+                      <stop offset="5%"  stopColor={chartLineColor} stopOpacity={0.25} />
+                      <stop offset="95%" stopColor={chartLineColor} stopOpacity={0}    />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
@@ -257,16 +333,14 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
                     tickFormatter={v => v.toLocaleString(undefined, { maximumFractionDigits: 1 })} width={55} />
                   <Tooltip
                     contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.8rem' }}
-                    formatter={(v) => [v != null ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) + (rawUnit ? ` ${rawUnit}` : '') : '—', kpi.kpi_name]}
+                    formatter={(v) => [v != null ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ((viewMode === 'per_ton' ? unit : rawUnit) ? ` ${(viewMode === 'per_ton' ? unit : rawUnit)}` : '') : '—', kpi.kpi_name]}
                     labelFormatter={l => `Date: ${l}`}
                   />
-                  {/* Reference line only for daily standards — per-ton std scale doesn't match daily totals */}
-                  {standard != null && !isTonStd && (
-                    <ReferenceLine y={standard} stroke={stdGood ? '#22c55e' : '#ef4444'}
-                      strokeDasharray="5 3" strokeWidth={1.5}
-                      label={{ value: 'Std', position: 'insideTopRight', fontSize: 10, fill: stdGood ? '#16a34a' : '#dc2626' }} />
+                  {chartStd != null && (
+                    <ReferenceLine y={chartStd} stroke={chartStdColor}
+                      strokeDasharray="5 3" strokeWidth={1.5} />
                   )}
-                  <Area type="monotone" dataKey="total" stroke="var(--primary)" strokeWidth={2}
+                  <Area type="monotone" dataKey="total" stroke={chartLineColor} strokeWidth={2}
                     fill={`url(#grad-${kpi.kpi_id})`} dot={false} activeDot={{ r: 4 }} />
                   {trend.some(t => t.is_anomaly) && (
                     <Line type="monotone" dataKey={d => d.is_anomaly ? d.total : null}
@@ -275,18 +349,21 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-            <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ display: 'inline-block', width: '20px', height: '2px', background: 'var(--primary)' }} /> Daily value
+            <div style={{ display: 'flex', gap: '1.25rem', marginTop: '0.75rem', padding: '0.5rem 0.85rem', background: 'var(--bg-outer)', borderRadius: '8px', fontSize: '0.72rem', color: 'var(--text-main)', fontWeight: 600, width: 'fit-content', border: '1px solid var(--border-color)' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ display: 'inline-block', width: '16px', height: '0', borderTop: `2.5px solid ${chartLineColor}` }} />
+                <span>Daily Value</span>
               </span>
-              {standard != null && !isTonStd && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ display: 'inline-block', width: '20px', height: '2px', background: stdGood ? '#22c55e' : '#ef4444', borderTop: '2px dashed' }} /> Benchmark
+              {chartStd != null && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ display: 'inline-block', width: '16px', height: '0', borderTop: `2.5px dashed ${chartStdColor}` }} />
+                  <span>Target Benchmark <span style={{ opacity: 0.8, fontWeight: 700 }}>({chartStd.toLocaleString(undefined, { maximumFractionDigits: 1 })} {viewMode === 'per_ton' ? unit : rawUnit})</span></span>
                 </span>
               )}
               {trend.some(t => t.is_anomaly) && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }} /> Anomaly
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 0 2px rgba(245,158,11,0.2)' }} />
+                  <span>Anomaly Detected</span>
                 </span>
               )}
             </div>
@@ -559,7 +636,7 @@ const Dashboard = () => {
 
   const selectedSectionName = sectionsList.find(s => s.id.toString() === selectedSection)?.name || '';
   const isSales   = selectedSectionName === 'Sales';
-  const showPerTon = viewMode === 'per_ton' && selectedCategory === 'Consumption' && !isSales;
+  const showPerTon = viewMode === 'per_ton' && selectedCategory === 'Consumption' && !isSales && selectedSection !== '0';
 
   const [cols, setCols] = useState(1);
   useEffect(() => {
@@ -612,9 +689,13 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (selectedSection == null || selectedSection === '' || !selectedCategory) return;
+    let cancelled = false;
+    setCategoryData([]);
+    setDailyMatrix({ dates: [], series: [] });
+    setSelectedKpi(null);   // clear detail when filters change
+    
     const loadData = async () => {
       setLoading(true);
-      setSelectedKpi(null);   // clear detail when filters change
       try {
         const params = { section_id: selectedSection, category: selectedCategory };
         if (startDate) params.start_date = startDate;
@@ -628,12 +709,18 @@ const Dashboard = () => {
           })
         ]);
         
-        setCategoryData(cData);
-        setDailyMatrix(mData);
-      } catch (error) { console.error('Error loading dashboard data', error); }
-      finally { setLoading(false); }
+        if (!cancelled) {
+          setCategoryData(cData);
+          setDailyMatrix(mData);
+        }
+      } catch (error) { 
+        console.error('Error loading dashboard data', error); 
+      } finally { 
+        if (!cancelled) setLoading(false); 
+      }
     };
     loadData();
+    return () => { cancelled = true; };
   }, [selectedSection, selectedCategory, startDate, endDate, viewMode]);
 
   // Auto-select the 'Total' group as default whenever data reloads
@@ -714,11 +801,11 @@ const Dashboard = () => {
     <div>
       <div style={{ marginBottom: '2.5rem' }}>
         <div className="page-header" style={{ marginBottom: '1.5rem' }}>
-          <h1 className="page-title" style={{ margin: 0 }}>Output and Consumption Analysis</h1>
+          <BlurText className="page-title" text="Output and Consumption Analysis" />
         </div>
 
         {/* Constraints Bar */}
-        <div className="filters-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-end' }}>
+        <div className="filters-bar">
           <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-main)', fontWeight: 700, fontSize: '0.95rem', paddingBottom: '0.65rem' }}>
             <Filter size={18} style={{ marginRight: '8px', color: 'var(--text-muted)' }} /> Filters
           </div>
@@ -776,6 +863,17 @@ const Dashboard = () => {
       {loading && (
         <div className="dashboard-grid">
           {[1,2,3,4,5,6].map(i => <div key={i} className="skeleton" style={{height: '130px'}}></div>)}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && categoryData.length === 0 && (
+        <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+          <div style={{ background: 'var(--bg-outer)', padding: '16px', borderRadius: '50%', marginBottom: '16px' }}>
+            <BarChart2 size={32} opacity={0.5} />
+          </div>
+          <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>No Data Available</div>
+          <div style={{ fontSize: '0.85rem', marginTop: '6px' }}>There is no data matching this period for {selectedCategory}.</div>
         </div>
       )}
 
@@ -853,9 +951,10 @@ const Dashboard = () => {
                 }
               }
               return (
-                <div
+                <SpotlightCard
                   id={`kpi-card-${kpi.kpi_id}`}
                   className={`dribbble-card ${isSelected ? 'selected' : ''}`} key={kpi.kpi_id}
+                  spotlightColor="rgba(15, 23, 42, 0.08)"
                   onClick={() => setSelectedKpi(isSelected ? null : kpi)}
                   style={{
                     outline: isSelected ? '2px solid var(--primary)' : 'none',
@@ -879,7 +978,7 @@ const Dashboard = () => {
                   </div>
 
                   <div className="dribbble-value">
-                    {typeof kpi.value === 'number' ? kpi.value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : kpi.value}
+                    {typeof kpi.value === 'number' ? <CountUp to={kpi.value} duration={0.8} /> : kpi.value}
                     {kpi.unit && kpi.value !== 'N/A' ? <span style={{fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '4px'}}>{kpi.unit}</span> : ''}
                   </div>
 
@@ -908,7 +1007,7 @@ const Dashboard = () => {
                     )}
                   </div>
 
-                </div>
+                </SpotlightCard>
               );
             };
 
@@ -936,7 +1035,9 @@ const Dashboard = () => {
                       onClose={() => setSelectedKpi(null)}
                       isOutput={isOutput}
                       navigate={navigate}
-                      totalWeightKg={selectedKpi.total_weight_kg ?? null}
+                      setViewMode={setViewMode}
+                      viewMode={viewMode}
+                      totalWeightKg={selectedKpi.total_weight_kg ?? (selectedKpi.total_weight_tons ? selectedKpi.total_weight_tons * 1000 : null)}
                     />
                   </div>
                 );
@@ -972,8 +1073,29 @@ const Dashboard = () => {
                 if (chartItems.length === 0 || dailyMatrix.series.length === 0) return null;
 
                 if (selectedCategory === 'Output' || selectedCategory === 'Orders') {
-                  // Find primary metric with a standard
-                  const candidateKpis = chartItems.filter(k => k.value !== 'N/A' && standards[k.kpi_id] != null);
+                  // Find primary metric with a CONFIGURED or COMPUTED standard
+                  const candidateKpis = chartItems.filter(k => k.value !== 'N/A').map(k => {
+                     let std = standards[k.kpi_id];
+                     if (std == null && chartGroupLabel?.toLowerCase() === 'total') {
+                        // Attempt to compute implied standard by aggregating sub-machine targets
+                        const targetWord = getKpiPrefix(k.kpi_name) ? null : k.kpi_name.trim().toLowerCase();
+                        if (targetWord) {
+                            let sum = 0;
+                            let found = false;
+                            categoryData.forEach(other => {
+                               if (other.kpi_id !== k.kpi_id && other.kpi_name.toLowerCase().endsWith(targetWord)) {
+                                   if (standards[other.kpi_id] != null) {
+                                      sum += standards[other.kpi_id];
+                                      found = true;
+                                   }
+                               }
+                            });
+                            if (found) std = sum;
+                        }
+                     }
+                     return { ...k, __std: std };
+                  }).filter(k => k.__std != null);
+
                   if (candidateKpis.length === 0) {
                     return (
                       <div className="chart-card" style={{ marginTop: '1.5rem', textAlign: 'center', padding: '3rem 1rem' }}>
@@ -987,7 +1109,7 @@ const Dashboard = () => {
                   const seriesData = dailyMatrix.series.find(s => s.kpi_id === primaryKpi.kpi_id);
                   if (!seriesData) return null;
                   
-                  const standardVal = standards[primaryKpi.kpi_id];
+                  const standardVal = primaryKpi.__std;
                   let currentActual = 0;
                   let currentTarget = 0;
                   const pacingData = [];
@@ -1210,13 +1332,7 @@ const Dashboard = () => {
         </>
       )}
 
-      {!loading && categoryData.length === 0 && (
-        <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-          <Factory size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-          <h2>No {selectedCategory} data for this period / machine</h2>
-          <p>Adjust your date range or select a different section.</p>
-        </div>
-      )}
+
     </div>
   );
 };

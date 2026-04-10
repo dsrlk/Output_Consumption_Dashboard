@@ -185,7 +185,7 @@ const Trends = () => {
                   type="monotone" 
                   dataKey="total" 
                   name="Daily Aggregate" 
-                  stroke="var(--primary)" 
+                  stroke={activeKpiObj?.category === 'Output' ? 'var(--text-main)' : 'var(--primary)'}
                   strokeWidth={2}
                   dot={{ r: 4, fill: 'var(--card-bg)', strokeWidth: 2 }}
                   activeDot={{ r: 6 }} 

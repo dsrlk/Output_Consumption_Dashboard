@@ -235,6 +235,14 @@ h1, h2, h3, h4, h5, h6, .page-title, .card-title {
   margin-bottom: 2.5rem;
 }
 
+/* Analytics Grid */
+.analytics-grid-two-col {
+  display: grid;
+  grid-template-columns: minmax(400px, 2fr) minmax(400px, 3fr);
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
 /* Card Component */
 .card {
   background: var(--card-bg);
@@ -360,9 +368,10 @@ tr:hover td {
 /* Filters Bar */
 .filters-bar {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
   flex-wrap: wrap;
+  align-items: flex-end;
 }
 
 select, input {
@@ -596,12 +605,16 @@ select:focus, input:focus {
 }
 
 .dribbble-value {
-  font-size: 2.75rem;
+  font-size: 2.15rem;
   font-weight: 600;
   color: var(--text-main);
   letter-spacing: -0.03em;
   margin-bottom: 1rem;
   line-height: 1.2;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  word-break: break-word;
 }
 
 .dribbble-footer {
@@ -654,7 +667,16 @@ select:focus, input:focus {
   .topbar-center {
     width: 100%;
     order: 3;
-    justify-content: center;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.25rem;
+  }
+
+  .topbar-center::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
   }
   
   .main-content {
@@ -666,12 +688,41 @@ select:focus, input:focus {
   }
   
   .card-value, .dribbble-value {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
 
+  /* Compact grid for filters on mobile to save vertical space */
   .filters-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  
+  .filters-bar > div:first-child {
+    grid-column: 1 / -1; /* Make the label span full width */
+    padding-bottom: 0.25rem !important;
+  }
+
+  .filters-bar > div {
+    display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    width: 100%;
+  }
+
+  /* Override hardcoded inline widths on components */
+  .filters-bar .custom-select-trigger, 
+  .filters-bar .date-input {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-grid-two-col {
+    grid-template-columns: 1fr !important;
   }
 }
 

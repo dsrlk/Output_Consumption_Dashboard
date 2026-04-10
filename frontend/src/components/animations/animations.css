@@ -1,0 +1,89 @@
+/* Aurora Background */
+.aurora-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  overflow: hidden;
+  background-color: var(--bg-outer); 
+  pointer-events: none;
+}
+
+.aurora-mesh {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  /* Enhanced fidelity slate/stone color gradients to contrast over light theme */
+  background: 
+    radial-gradient(circle at 25% 30%, rgba(51, 65, 85, 0.35), transparent 45%),
+    radial-gradient(circle at 75% 70%, rgba(100, 116, 139, 0.3), transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.2), transparent 60%);
+  filter: blur(80px);
+  animation: aurora-shift 25s infinite alternate ease-in-out;
+  opacity: 1;
+}
+
+@keyframes aurora-shift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-3%, 3%) scale(1.05); }
+  100% { transform: translate(3%, -3%) scale(1); }
+}
+
+/* Blur Text */
+.blur-text {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(12px);
+  animation: blur-in 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes blur-in {
+  from {
+    opacity: 0;
+    filter: blur(12px);
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateY(0);
+  }
+}
+
+/* Spotlight Wrapper Custom Variables */
+.spotlight-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.spotlight-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background: radial-gradient(
+    800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(15, 23, 42, 0.09),
+    transparent 40%
+  );
+  opacity: var(--spotlight-opacity, 0);
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 10;
+  border-radius: inherit;
+}
+
+/* For dark mode specifically */
+@media (prefers-color-scheme: dark) {
+  .spotlight-wrapper::before {
+    background: radial-gradient(
+      800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(255, 255, 255, 0.09),
+      transparent 40%
+    );
+  }
+}

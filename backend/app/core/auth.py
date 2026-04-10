@@ -3,7 +3,7 @@ from fastapi import HTTPException, Header
 from typing import Optional
 
 # Set this in your Render/Railway environment variables
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "changeme123")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Exp@123")
 
 def verify_admin(x_admin_password: Optional[str] = Header(None)):
     """Dependency that validates the admin password header for protected routes."""

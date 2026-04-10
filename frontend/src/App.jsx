@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, BarChart2, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, BarChart2, Settings, LogOut, Lock } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
 import DataHub from './pages/DataHub';
@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { FilterProvider } from './context/FilterContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { Aurora } from './components/animations/Aurora';
 
 const TopBar = () => {
   const { isAdmin, logout } = useAuth();
@@ -53,7 +54,10 @@ const TopBar = () => {
             </button>
           )}
 
-          <div className="avatar" style={{
+          <div className="avatar" 
+            title={isAdmin ? "Admin User" : "Admin Login"}
+            onClick={() => { if (!isAdmin) navigate('/login'); }}
+            style={{
             background: isAdmin ? 'var(--primary)' : 'var(--text-main)',
             color: '#fff',
             display: 'flex',
@@ -63,8 +67,9 @@ const TopBar = () => {
             fontSize: '0.95rem',
             letterSpacing: '-0.02em',
             userSelect: 'none',
+            cursor: isAdmin ? 'default' : 'pointer',
           }}>
-            {isAdmin ? 'A' : 'T'}
+            {isAdmin ? 'A' : <Lock size={16} strokeWidth={2.5} />}
           </div>
         </div>
       </div>
@@ -78,6 +83,7 @@ function App() {
       <AuthProvider>
         <FilterProvider>
           <div className="app-container">
+            <Aurora />
             <TopBar />
             <main className="main-content">
               <Routes>
@@ -96,4 +102,5 @@ function App() {
 }
 
 export default App;
+
 
