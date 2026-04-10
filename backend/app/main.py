@@ -30,3 +30,19 @@ app.include_router(analytics.router, prefix="/api/dashboard", tags=["Dashboard A
 @app.get("/")
 def root():
     return {"message": "Consumption Report API is running"}
+
+@app.get("/debug")
+def debug():
+    import os
+    cwd = os.getcwd()
+    files_in_cwd = os.listdir(cwd)
+    db_path = os.path.join(cwd, "data.db")
+    db_exists = os.path.exists(db_path)
+    db_size = os.path.getsize(db_path) if db_exists else 0
+    return {
+        "cwd": cwd,
+        "files_in_cwd": files_in_cwd,
+        "db_path": db_path,
+        "db_exists": db_exists,
+        "db_size_bytes": db_size
+    }
