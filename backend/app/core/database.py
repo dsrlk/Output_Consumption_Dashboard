@@ -14,10 +14,9 @@ if DATABASE_URL:
     SQLALCHEMY_DATABASE_URL = DATABASE_URL
     engine = create_engine(SQLALCHEMY_DATABASE_URL)
 else:
-    # Development: SQLite
-    DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "processed")
-    os.makedirs(DB_DIR, exist_ok=True)
-    DB_PATH = os.path.join(DB_DIR, "warehouse_v11.db")
+    # SQLite fallback: use data.db at the backend root
+    DB_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    DB_PATH = os.path.join(DB_DIR, "data.db")
     SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
