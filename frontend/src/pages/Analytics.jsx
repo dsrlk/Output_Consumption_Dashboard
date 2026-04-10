@@ -4,7 +4,7 @@ import { Filter, Zap, Info, Trophy, AlertTriangle, TrendingDown, Target, Buildin
 import { useFilters } from '../context/FilterContext';
 import CustomSelect from '../components/CustomSelect';
 import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, Cell, Legend, ReferenceLine } from 'recharts';
-import { BlurText } from '../components/animations/BlurText';
+import BlurText from '../components/animations/BlurText';
 import SpotlightCard from '../components/animations/SpotlightCard';
 import CountUp from '../components/animations/CountUp';
 
