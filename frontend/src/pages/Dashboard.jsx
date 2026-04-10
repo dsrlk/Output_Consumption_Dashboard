@@ -38,6 +38,16 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
 
   const isTonStd = standardMeta?.period_type === 'ton';
 
+  // Derive the true output/consumption flag from the KPI's own standard category.
+  // The isOutput PROP comes from selectedCategory which can be wrong in the Overall
+  // section (category picker is hidden, so it defaults to whatever was last used).
+  // standardMeta?.category is always reliable — it's stored per-standard on the backend.
+  const effectiveIsOutput = standardMeta?.category === 'Output'
+    ? true
+    : standardMeta?.category === 'Consumption'
+    ? false
+    : isOutput; // fall back to prop only when no standard category is set
+
   // If a per-ton standard is set and we have the corrugator output weight,
   // we can compute a total-period standard: std_per_ton × total_tons
   const totalWeightTons = (totalWeightKg && totalWeightKg > 0) ? totalWeightKg / 1000 : null;
@@ -71,7 +81,7 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
   const isMatchingStd = ((isTonStd && viewMode === 'per_ton') || (!isTonStd && viewMode === 'total')) && kpi.pre_computed_period_std == null;
   const stdDev  = isMatchingStd && standard != null && standard !== 0 && avg != null
     ? ((avg - standard) / standard) * 100 : null;
-  const stdGood = stdDev != null ? (isOutput ? stdDev >= 0 : stdDev <= 0) : null;
+  const stdGood = stdDev != null ? (effectiveIsOutput ? stdDev >= 0 : stdDev <= 0) : null;
   const absStdDev = isMatchingStd && standard != null && avg != null ? avg - standard : null;
 
   // Deviation using computed total-period standard (per-ton std × total tons OR pre-computed standard)
@@ -85,7 +95,7 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
 
   const totalDev  = viewMode === 'total' && effectiveTotalStd != null && effectiveTotalStd !== 0 && colorBaseValue != null
     ? ((colorBaseValue - effectiveTotalStd) / effectiveTotalStd) * 100 : null;
-  const totalGood = totalDev != null ? (isOutput ? totalDev >= 0 : totalDev <= 0) : null;
+  const totalGood = totalDev != null ? (effectiveIsOutput ? totalDev >= 0 : totalDev <= 0) : null;
   const absTotalDev = viewMode === 'total' && effectiveTotalStd != null && periodTotal != null ? periodTotal - effectiveTotalStd : null;
 
   // ── Per-ton fetch: get actual consumption/ton + total weight for the period ─
@@ -111,7 +121,7 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
   const weightTons  = perTonData?.total_weight_tons ?? null;
   const tonDev      = perTonValue != null && standard != null && standard !== 0
     ? ((perTonValue - standard) / standard) * 100 : null;
-  const tonGood     = tonDev != null ? (isOutput ? tonDev >= 0 : tonDev <= 0) : null;
+  const tonGood     = tonDev != null ? (effectiveIsOutput ? tonDev >= 0 : tonDev <= 0) : null;
 
   // Chart Reference Line Calculation
   let chartStd = null;
@@ -146,18 +156,6 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
       chartStdFill = tonGood ? '#16a34a' : '#dc2626';
     }
   }
-
-  // ── DIAGNOSTIC (remove after fix confirmed) ──────────────────────────────
-  console.log(
-    `[COLOR] ${kpi.kpi_name} | isOutput=${isOutput} | stdMeta.cat=${standardMeta?.category} | ` +
-    `std=${standard} | kpi.value=${kpi.value} | preStd=${kpi.pre_computed_period_std} | ` +
-    `effectiveTotalStd=${effectiveTotalStd} | colorBase=${colorBaseValue} | ` +
-    `totalDev=${totalDev?.toFixed(2)} | totalGood=${totalGood} | ` +
-    `stdDev=${stdDev?.toFixed(2)} | stdGood=${stdGood} | ` +
-    `chartStd=${chartStd?.toFixed(2)} | chartColor=${chartStdColor} | ` +
-    `trendLen=${trend.length} | avg=${avg?.toFixed(2)}`
-  );
-  // ─────────────────────────────────────────────────────────────────────────
 
   const unit = kpi.unit || '';
   const rawUnit = unit.replace('/Ton', '').replace('per Ton', '').trim() || '';
@@ -257,7 +255,7 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '130px' }}>
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Variance</span>
-                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: absTotalDev > 0 ? (isOutput ? '#16a34a' : '#dc2626') : (isOutput ? '#dc2626' : '#16a34a') }}>
+                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: absTotalDev > 0 ? (effectiveIsOutput ? '#16a34a' : '#dc2626') : (effectiveIsOutput ? '#dc2626' : '#16a34a') }}>
                       {absTotalDev > 0 ? '+' : ''}{absTotalDev.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       <span style={{ fontSize: '0.72rem', marginLeft: '3px' }}>{rawUnit}</span>
                     </span>
@@ -295,7 +293,7 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '130px' }}>
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Variance</span>
-                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: absStdDev > 0 ? (isOutput ? '#16a34a' : '#dc2626') : (isOutput ? '#dc2626' : '#16a34a') }}>
+                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: absStdDev > 0 ? (effectiveIsOutput ? '#16a34a' : '#dc2626') : (effectiveIsOutput ? '#dc2626' : '#16a34a') }}>
                       {absStdDev > 0 ? '+' : ''}{absStdDev.toLocaleString(undefined, { maximumFractionDigits: 3 })}
                       <span style={{ fontSize: '0.72rem', marginLeft: '3px' }}>{viewMode === 'per_ton' ? unit : rawUnit}</span>
                     </span>
@@ -839,7 +837,7 @@ const Dashboard = () => {
             />
           </div>
 
-          {selectedSection !== '0' && (
+          {!isSales && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Category</span>
               <CustomSelect 
