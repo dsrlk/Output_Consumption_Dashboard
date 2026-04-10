@@ -148,30 +148,15 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
   }
 
   // ── DIAGNOSTIC (remove after fix confirmed) ──────────────────────────────
-  console.log('[KpiDetailPanel COLOR DEBUG]', {
-    kpi_name: kpi.kpi_name,
-    kpi_id: kpi.kpi_id,
-    isOutput_prop: isOutput,
-    'standardMeta?.category': standardMeta?.category,
-    'standardMeta?.period_type': standardMeta?.period_type,
-    standard,
-    'kpi.value': kpi.value,
-    'kpi.pre_computed_period_std': kpi.pre_computed_period_std,
-    'kpi.working_days': kpi.working_days,
-    viewMode,
-    isTonStd,
-    effectiveTotalStd,
-    colorBaseValue,
-    totalDev,
-    totalGood,
-    stdDev,
-    stdGood,
-    chartStd,
-    chartStdColor,
-    trend_length: trend.length,
-    avg,
-    periodTotal,
-  });
+  console.log(
+    `[COLOR] ${kpi.kpi_name} | isOutput=${isOutput} | stdMeta.cat=${standardMeta?.category} | ` +
+    `std=${standard} | kpi.value=${kpi.value} | preStd=${kpi.pre_computed_period_std} | ` +
+    `effectiveTotalStd=${effectiveTotalStd} | colorBase=${colorBaseValue} | ` +
+    `totalDev=${totalDev?.toFixed(2)} | totalGood=${totalGood} | ` +
+    `stdDev=${stdDev?.toFixed(2)} | stdGood=${stdGood} | ` +
+    `chartStd=${chartStd?.toFixed(2)} | chartColor=${chartStdColor} | ` +
+    `trendLen=${trend.length} | avg=${avg?.toFixed(2)}`
+  );
   // ─────────────────────────────────────────────────────────────────────────
 
   const unit = kpi.unit || '';
