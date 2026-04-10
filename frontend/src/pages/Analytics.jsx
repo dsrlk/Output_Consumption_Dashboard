@@ -273,9 +273,9 @@ const OverallView = ({ data, loading }) => {
               <thead>
                 <tr>
                   <th style={{ paddingLeft: '1.5rem' }}>Department</th>
-                  <th>Output</th>
-                  <th>Efficiency Score</th>
-                  <th style={{ paddingRight: '1.5rem', textAlign: 'right' }}>Anomalies</th>
+                  <th style={{ width: '110px', whiteSpace: 'nowrap' }}>Output</th>
+                  <th style={{ width: '180px' }}>Efficiency Score</th>
+                  <th style={{ paddingRight: '1.5rem', textAlign: 'right', width: '90px', whiteSpace: 'nowrap' }}>Anomalies</th>
                 </tr>
               </thead>
               <tbody>
