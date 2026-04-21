@@ -82,7 +82,14 @@ KPI_MAP = [
   ("Factory 2", "Chemifix", 64, "KG"),
   ("Factory 2", "Spray Chemifix", 65, "KG"),
   ("Factory 2", "Stitching Wire", 66, "KG"),
-  ("Factory 2", "Bundling Rope", 67, "KG")
+  ("Factory 2", "Bundling Rope", 67, "KG"),
+
+  # ── Utilities (BQ–BU, indices 68–72) — factory-wide meters ──
+  ("Utilities", "Electricity Usage",  68, "kWh"),
+  ("Utilities", "Water - Main Meter", 69, "L"),
+  ("Utilities", "Water - Cafeteria",  70, "L"),
+  ("Utilities", "Water - Printer 04", 71, "L"),
+  ("Utilities", "Wastewater Plant",   72, "L"),
 ]
 
 def get_or_create(session, model, **kwargs):
@@ -147,6 +154,8 @@ def process_excel_files(db: Session):
                 def classify_kpi(name):
                     n = name.lower()
                     if n == "orders brought in": return "Orders"
+                    utilities = ["electricity usage", "water - main meter", "water - cafeteria", "water - printer 04", "wastewater plant"]
+                    if n in utilities: return "Utilities"
                     consumptions = ["no of workers", "hours worked", "furnace oil consumed", "corn starch", "caustic soda", "borax", "ink", "glue", "bundling rope", "stitching wire", "strapping tape", "laminating glue", "chemifix", "spray chemifix"]
                     if n in consumptions: return "Consumption"
                     outputs = ["weight", "linear meters", "square meters", "weight efficiency", "efficiency", "capacity utilisation", "utilisation", "combined efficiency", "impression", "p1 & p6 qty", "p1 & p6 weight", "p4 qty", "p4 weight", "total qty", "total weight", "finished qty"]

@@ -121,3 +121,8 @@ export const getCrossSectionSummary = async (params = {}) => {
     const response = await api.get('/dashboard/cross_section_summary', { params });
     return response.data;
 }
+
+export const getUtilities = async (params = {}) => {
+    const response = await api.get('/dashboard/utilities', { params });
+    return response.data;
+}

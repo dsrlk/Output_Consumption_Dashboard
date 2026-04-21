@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCategorySummary, getCategoryPerTon, getStandards, getSections, getTrends, getCategoryDailyMatrix } from '../services/api';
+import { getCategorySummary, getCategoryPerTon, getStandards, getSections, getTrends, getCategoryDailyMatrix, getUtilities } from '../services/api';
 import { AlignVerticalSpaceAround, Factory, Filter, TrendingUp, TrendingDown, X, BarChart2, ChevronRight } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
@@ -638,6 +638,136 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
   );
 };
 
+// ── Utilities Monitor Panel ─────────────────────────────────────────────────────
+const UTIL_CONFIG = {
+  'Electricity Usage':   { icon: '⚡', accent: '#f59e0b' },
+  'Water - Main Meter':  { icon: '💧', accent: '#3b82f6' },
+  'Water - Cafeteria':   { icon: '🚰', accent: '#06b6d4' },
+  'Water - Printer 04':  { icon: '🔧', accent: '#8b5cf6' },
+  'Wastewater Plant':    { icon: '🏭', accent: '#64748b' },
+};
+
+const UtilitiesPanel = ({ utilityData, utilityLoading, startDate, endDate, navigate }) => {
+  const [selectedUtilKpi, setSelectedUtilKpi] = useState(null);
+
+  if (!utilityLoading && utilityData.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: '2.5rem' }}>
+      {/* Section header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '0.75rem',
+        marginBottom: '1.25rem', paddingBottom: '0.85rem',
+        borderBottom: '1.5px solid var(--border-color)',
+      }}>
+        <div style={{
+          width: '34px', height: '34px', borderRadius: '10px',
+          background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(59,130,246,0.15))',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '1rem', border: '1px solid var(--border-color)', flexShrink: 0,
+        }}>⚡</div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.2 }}>
+            Utilities Monitor
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '1px' }}>
+            Factory-wide infrastructure · Click a card to drill into trend
+          </div>
+        </div>
+        <div style={{
+          marginLeft: 'auto', fontSize: '0.63rem', fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          background: 'rgba(245,158,11,0.1)', color: '#b45309',
+          border: '1px solid rgba(245,158,11,0.25)', borderRadius: '99px',
+          padding: '3px 10px', flexShrink: 0,
+        }}>Infrastructure</div>
+      </div>
+
+      {/* Skeletons while loading */}
+      {utilityLoading && (
+        <div className="dashboard-grid">
+          {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: '130px' }} />)}
+        </div>
+      )}
+
+      {/* Cards + drill-down */}
+      {!utilityLoading && (
+        <>
+          <div className="dashboard-grid">
+            {utilityData.map(kpi => {
+              const cfg = UTIL_CONFIG[kpi.kpi_name] || { icon: '🔌', accent: 'var(--primary)' };
+              const isSelected = selectedUtilKpi?.kpi_id === kpi.kpi_id;
+              const hasValue = typeof kpi.value === 'number' && kpi.value > 0;
+              return (
+                <SpotlightCard
+                  id={`util-card-${kpi.kpi_id}`}
+                  key={kpi.kpi_id}
+                  className={`dribbble-card ${isSelected ? 'selected' : ''}`}
+                  spotlightColor="rgba(15, 23, 42, 0.08)"
+                  onClick={() => setSelectedUtilKpi(isSelected ? null : kpi)}
+                  style={{
+                    outline: isSelected ? `2px solid ${cfg.accent}` : 'none',
+                    outlineOffset: '2px', cursor: 'pointer', position: 'relative',
+                  }}
+                >
+                  <div className="dribbble-header">
+                    <span className="dribbble-title" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <span style={{ fontSize: '1rem' }}>{cfg.icon}</span>
+                      <span>{kpi.kpi_name}</span>
+                      {isSelected && (
+                        <span style={{ background: cfg.accent, color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.04em' }}>
+                          SELECTED
+                        </span>
+                      )}
+                    </span>
+                    <button className="dribbble-action">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </div>
+                  <div className="dribbble-value">
+                    {hasValue
+                      ? <CountUp to={kpi.value} duration={0.8} />
+                      : <span style={{ color: 'var(--text-muted)', fontSize: '1.6rem' }}>—</span>}
+                    {kpi.unit && hasValue && (
+                      <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '4px' }}>{kpi.unit}</span>
+                    )}
+                  </div>
+                  <div className="dribbble-footer">
+                    <span className="dribbble-trend-pill" style={{ background: `${cfg.accent}18`, color: cfg.accent, border: `1px solid ${cfg.accent}30` }}>
+                      {cfg.icon}
+                    </span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Period total</span>
+                  </div>
+                </SpotlightCard>
+              );
+            })}
+          </div>
+
+          {/* Drill-down detail panel */}
+          {selectedUtilKpi && (
+            <div style={{ width: '100%', marginTop: '0.5rem', animation: 'fadeUp 0.3s ease-out' }}>
+              <KpiDetailPanel
+                kpi={selectedUtilKpi}
+                standard={null}
+                standardMeta={null}
+                selectedSection={0}
+                startDate={startDate}
+                endDate={endDate}
+                onClose={() => setSelectedUtilKpi(null)}
+                isOutput={false}
+                navigate={navigate}
+                setViewMode={null}
+                viewMode="total"
+                totalWeightKg={null}
+              />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
 // ── Dashboard ────────────────────────────────────────────────────────────────────
 const Dashboard = () => {
   const [categoryData, setCategoryData]   = useState([]);
@@ -649,6 +779,8 @@ const Dashboard = () => {
   const [viewMode, setViewMode]           = useState('total');
   const [selectedKpi, setSelectedKpi]     = useState(null);   // KPI object selected for detail
   const [machineFilter, setMachineFilter] = useState(null); // null = show all, or a group prefix string
+  const [utilityData, setUtilityData]         = useState([]);
+  const [utilityLoading, setUtilityLoading]   = useState(false);
 
   const { selectedSection, setSelectedSection, selectedCategory, setSelectedCategory, startDate, setStartDate, endDate, setEndDate } = useFilters();
 
@@ -748,6 +880,21 @@ const Dashboard = () => {
     setMachineFilter(totalGroup ? totalGroup.groupLabel : null);
     setSelectedKpi(null);
   }, [categoryData]);
+
+  // ── Utilities: fetch independently (not tied to category/view filters) ──
+  useEffect(() => {
+    if (selectedSection == null || selectedSection === '') return;
+    let cancelled = false;
+    setUtilityLoading(true);
+    const params = { section_id: selectedSection };
+    if (startDate) params.start_date = startDate;
+    if (endDate)   params.end_date   = endDate;
+    getUtilities(params)
+      .then(d  => { if (!cancelled) setUtilityData(d); })
+      .catch(() => { if (!cancelled) setUtilityData([]); })
+      .finally(() => { if (!cancelled) setUtilityLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedSection, startDate, endDate]);
 
   const getDeviation = (kpi) => {
     const meta = standardsMeta[kpi.kpi_id];
@@ -1350,6 +1497,14 @@ const Dashboard = () => {
         </>
       )}
 
+      {/* ── Utilities Monitor ── always visible below main KPI section ── */}
+      <UtilitiesPanel
+        utilityData={utilityData}
+        utilityLoading={utilityLoading}
+        startDate={startDate}
+        endDate={endDate}
+        navigate={navigate}
+      />
 
     </div>
   );

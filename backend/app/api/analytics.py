@@ -304,9 +304,6 @@ def get_category_summary(
             {"kpi_id": -2, "kpi_name": "Furnace Oil", "unit": "Liters", "value": round(fo_l, 2), "aggregation": "sum", "working_days": corr_wd, "total_weight_kg": corr_kg},
             {"kpi_id": -3, "kpi_name": "Glue", "unit": "KG", "value": round(glue_kg, 2), "aggregation": "sum", "working_days": None, "total_weight_kg": corr_kg, "pre_computed_period_std": glue_pre_computed_std},
             {"kpi_id": -4, "kpi_name": "Waste %", "unit": "%", "value": "N/A", "aggregation": "sum", "working_days": factory_wd, "total_weight_kg": corr_kg},
-            {"kpi_id": -5, "kpi_name": "Electricity", "unit": "kWh", "value": "N/A", "aggregation": "sum", "working_days": factory_wd, "total_weight_kg": corr_kg},
-            {"kpi_id": -6, "kpi_name": "Water", "unit": "Liters", "value": "N/A", "aggregation": "sum", "working_days": factory_wd, "total_weight_kg": corr_kg},
-            {"kpi_id": -7, "kpi_name": "Wastewater", "unit": "Liters", "value": "N/A", "aggregation": "sum", "working_days": factory_wd, "total_weight_kg": corr_kg},
         ]
 
 
@@ -580,6 +577,88 @@ def get_category_per_ton(
             "aggregation": "per_ton",
             "deviation": deviation
         })
+
+    return output
+
+
+@router.get("/utilities")
+def get_utilities(
+    section_id: int,
+    db: Session = Depends(get_db),
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+):
+    """
+    Returns utility KPI totals (Electricity, Water, Wastewater) for the requested period.
+    Data is always fetched from the 'Utilities' section in dim_section regardless of the
+    section_id filter — section_id only controls which KPI subset is returned:
+      - 0 (Overall): Electricity Usage, Water - Main Meter, Wastewater Plant
+      - >0 (section): Electricity Usage, Water - Cafeteria, Water - Printer 04, Wastewater Plant
+    """
+    utils_section = db.query(DimSection).filter(DimSection.name == "Utilities").first()
+    if not utils_section:
+        return []
+
+    # KPI subset based on view context
+    if int(section_id) == 0:
+        kpi_names = ["Electricity Usage", "Water - Main Meter", "Wastewater Plant"]
+    else:
+        kpi_names = ["Electricity Usage", "Water - Cafeteria", "Water - Printer 04", "Wastewater Plant"]
+
+    query = (
+        db.query(
+            DimKPI.id,
+            DimKPI.name.label("kpi_name"),
+            DimKPI.unit,
+            func.sum(FactKPIValue.value).label("total_sum"),
+        )
+        .join(FactKPIValue, DimKPI.id == FactKPIValue.kpi_id)
+        .join(DimDate, DimDate.id == FactKPIValue.date_id)
+        .filter(
+            FactKPIValue.section_id == utils_section.id,
+            DimKPI.name.in_(kpi_names),
+            FactKPIValue.value.isnot(None),
+            FactKPIValue.value > 0,
+        )
+    )
+    if start_date:
+        query = query.filter(DimDate.date_val >= start_date)
+    if end_date:
+        query = query.filter(DimDate.date_val <= end_date)
+
+    results = query.group_by(DimKPI.id, DimKPI.name, DimKPI.unit).all()
+    result_map = {r.kpi_name: r for r in results}
+
+    output = []
+    for name in kpi_names:
+        if name in result_map:
+            r = result_map[name]
+            output.append({
+                "kpi_id": r.id,
+                "kpi_name": r.kpi_name,
+                "unit": r.unit,
+                "value": round(float(r.total_sum), 2),
+                "aggregation": "sum",
+                "working_days": None,
+                "total_weight_kg": None,
+            })
+        else:
+            # KPI defined in DB but no data for this period — show as zero
+            kpi_dim = (
+                db.query(DimKPI)
+                .filter(DimKPI.name == name, DimKPI.category == "Utilities")
+                .first()
+            )
+            if kpi_dim:
+                output.append({
+                    "kpi_id": kpi_dim.id,
+                    "kpi_name": kpi_dim.name,
+                    "unit": kpi_dim.unit,
+                    "value": 0,
+                    "aggregation": "sum",
+                    "working_days": None,
+                    "total_weight_kg": None,
+                })
 
     return output
 
