@@ -835,7 +835,7 @@ const Dashboard = () => {
         if (startDate) params.start_date = startDate;
         if (endDate)   params.end_date   = endDate;
         
-        const [cData, mData] = await Promise.all([
+        const [cDataRaw, mData] = await Promise.all([
           showPerTon ? getCategoryPerTon(params) : getCategorySummary(params),
           getCategoryDailyMatrix(params).catch(err => {
             console.error('Matrix load failed (backend needs restart?)', err);
@@ -843,11 +843,20 @@ const Dashboard = () => {
           })
         ]);
         
-        let finalCData = cData;
+        // Deduplicate KPIs by name to handle database duplicates caused by ETL rescan
+        const uniqueCDataMap = new Map();
+        cDataRaw.forEach(item => {
+            if (!uniqueCDataMap.has(item.kpi_name)) {
+                uniqueCDataMap.set(item.kpi_name, { ...item });
+            } else {
+                uniqueCDataMap.get(item.kpi_name).value += item.value;
+            }
+        });
+        let finalCData = Array.from(uniqueCDataMap.values());
         let finalMData = { ...mData };
 
         if (selectedSectionName === 'Utilities' && selectedCategory !== 'Consumption') {
-            finalCData = cData.filter(k => k.kpi_name.toLowerCase().includes(selectedCategory.toLowerCase()));
+            finalCData = finalCData.filter(k => k.kpi_name.toLowerCase().includes(selectedCategory.toLowerCase()));
             const allowedIds = new Set(finalCData.map(k => k.kpi_id));
             finalMData.series = mData.series.filter(s => allowedIds.has(s.kpi_id));
         }
