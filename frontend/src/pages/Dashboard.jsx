@@ -981,7 +981,7 @@ const Dashboard = () => {
             <CustomSelect 
               value={String(selectedSection)} 
               onChange={val => setSelectedSection(val)} 
-              options={sectionsList.map(s => ({ value: String(s.id), label: s.name }))} 
+              options={sectionsList.filter(s => s.name !== 'Utilities').map(s => ({ value: String(s.id), label: s.name }))} 
               style={{ width: '180px' }} 
             />
           </div>
@@ -995,17 +995,10 @@ const Dashboard = () => {
                 options={
                   isSales 
                     ? [{ value: 'Orders', label: 'Orders Brought In' }] 
-                    : selectedSectionName === 'Utilities'
-                      ? [
-                          { value: 'Consumption', label: 'All Utilities' },
-                          { value: 'Electricity', label: 'Electricity' },
-                          { value: 'Water', label: 'Water' },
-                          { value: 'Wastewater', label: 'Wastewater' }
-                        ]
-                      : [
-                          { value: 'Consumption', label: 'Consumption' },
-                          { value: 'Output', label: 'Output' }
-                        ]
+                    : [
+                        { value: 'Consumption', label: 'Consumption' },
+                        { value: 'Output', label: 'Output' }
+                      ]
                 }
                 style={{ width: '160px' }} 
               />
@@ -1568,17 +1561,6 @@ const Dashboard = () => {
               })()}
             </>
         </>
-      )}
-
-      {/* Render Utilities Panel at the bottom ONLY if Overall section is selected */}
-      {selectedSectionName === 'Overall' && (
-        <UtilitiesPanel 
-          utilityData={utilityData} 
-          utilityLoading={utilityLoading} 
-          startDate={startDate} 
-          endDate={endDate} 
-          navigate={navigate} 
-        />
       )}
 
     </div>
