@@ -500,41 +500,39 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
 
   const InsightRow = ({ item, accentColor }) => {
     const barWidth = Math.min((parseFloat(item.pct) / maxPct) * 100, 100);
-    const sign = item.raw > 0 ? '+' : '\u2212';
-    // Build a plain-language verdict for the row
-    const verb = item.isOutput
-      ? (item.isGood ? 'Output exceeded target by' : 'Output fell short of target by')
-      : (item.isGood ? 'Consumption was under target by' : 'Consumption exceeded target by');
+    const sign = item.raw > 0 ? '+' : '−';
+    const label = item.isOutput
+      ? (item.isGood ? 'Above Target' : 'Below Target')
+      : (item.isGood ? 'Under Budget' : 'Over Budget');
+    const sentence = item.isOutput
+      ? (item.isGood
+          ? `Produced ${item.pct}% above the benchmark — output is exceeding the standard target`
+          : `Produced ${item.pct}% below the benchmark — output is falling short of the standard target`)
+      : (item.isGood
+          ? `Consumed ${item.pct}% less than the benchmark — usage is within the acceptable limit`
+          : `Consumed ${item.pct}% more than the benchmark — usage has exceeded the set limit`);
     return (
-      <div style={{ padding: '0.7rem 0', borderBottom: '1px solid var(--border-color)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '0.35rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ width: '3px', height: '16px', borderRadius: '2px', background: accentColor, flexShrink: 0 }} />
-            <span style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-main)' }}>{item.name}</span>
-          </div>
-          <span style={{ fontWeight: 700, fontSize: '0.88rem', color: accentColor, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-            {sign}{item.pct}%
-          </span>
+      <div style={{ padding: '0.8rem 0', borderBottom: '1px solid var(--border-color)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
+          <span style={{ fontSize: '0.59rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', background: `${accentColor}12`, color: accentColor, border: `1px solid ${accentColor}28`, padding: '2px 7px', borderRadius: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}>{label}</span>
+          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', flex: 1 }}>{item.name}</span>
+          <span style={{ fontWeight: 800, fontSize: '0.9rem', color: accentColor, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{sign}{item.pct}%</span>
         </div>
-        <div style={{ paddingLeft: '11px', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <div style={{ width: '180px', height: '4px', background: 'var(--border-color)', borderRadius: '4px', flexShrink: 0 }}>
-              <div style={{ height: '100%', width: `${barWidth}%`, background: accentColor, borderRadius: '4px', transition: 'width 0.6s ease' }} />
-            </div>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{verb} <strong style={{ color: accentColor }}>{item.pct}%</strong></span>
+        <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.73rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{sentence}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '160px', height: '4px', background: 'var(--border-color)', borderRadius: '4px', flexShrink: 0 }}>
+            <div style={{ height: '100%', width: `${barWidth}%`, background: accentColor, borderRadius: '4px', transition: 'width 0.6s ease' }} />
           </div>
+          <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>deviation magnitude</span>
         </div>
       </div>
     );
   };
 
-  const SectionLabel = ({ label, description, dotColor }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', paddingBottom: '0.15rem' }}>
-      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
-      <span style={{ fontSize: '0.67rem', color: 'var(--text-muted)' }}>{description}</span>
-    </div>
-  );
+  const summaryText = alerts.length === 0
+    ? `All ${total} KPI${total !== 1 ? 's are' : ' is'} performing within or better than the set benchmarks.`
+    : `${alerts.length} of ${total} KPI${total !== 1 ? 's need' : ' needs'} attention — ${topPerformers.length} within target.`;
+  const summaryColor = alerts.length === 0 ? '#16a34a' : critical.length > 0 ? '#b91c1c' : '#b45309';
 
   return (
     <div className="chart-card" style={{ marginTop: '1.5rem' }}>
@@ -573,12 +571,16 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
         </div>
       </div>
 
-      {/* Rows */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        {critical.length > 0 && <div><SectionLabel label="Critical" description="≥†20% over benchmark" dotColor="#b91c1c" />{critical.map((a, i) => <InsightRow key={i} item={a} accentColor="#b91c1c" />)}</div>}
-        {warning.length > 0  && <div><SectionLabel label="Warning"  description="10–†20% over benchmark" dotColor="#b45309" />{warning.map((a, i)  => <InsightRow key={i} item={a} accentColor="#b45309" />)}</div>}
-        {minor.length > 0    && <div><SectionLabel label="Minor"    description="< 10% over benchmark"  dotColor="#64748b" />{minor.map((a, i)    => <InsightRow key={i} item={a} accentColor="#64748b" />)}</div>}
-        {topPerformers.length > 0 && <div><SectionLabel label="Within Target" description="at or within benchmark" dotColor="#16a34a" />{topPerformers.map((p, i) => <InsightRow key={i} item={p} accentColor="#16a34a" />)}</div>}
+      {/* Summary + Rows */}
+      <div style={{ background: `${summaryColor}08`, border: `1px solid ${summaryColor}22`, borderRadius: '7px', padding: '0.5rem 0.85rem', marginBottom: '0.5rem' }}>
+        <p style={{ margin: 0, fontSize: '0.78rem', color: summaryColor, fontWeight: 600 }}>{summaryText}</p>
+      </div>
+      <div>
+        {[...critical.map(a => ({ ...a, _c: '#b91c1c' })),
+          ...warning.map(a  => ({ ...a, _c: '#b45309' })),
+          ...minor.map(a    => ({ ...a, _c: '#64748b' })),
+          ...topPerformers.map(p => ({ ...p, _c: '#16a34a' })),
+        ].map((item, i) => <InsightRow key={i} item={item} accentColor={item._c} />)}
       </div>
     </div>
   );
