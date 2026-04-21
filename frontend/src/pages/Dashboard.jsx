@@ -511,7 +511,7 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
     ? `All ${total} KPI${total !== 1 ? 's are' : ' is'} within benchmark targets.`
     : `${alerts.length} of ${total} KPI${total !== 1 ? 's need' : ' needs'} attention.`;
 
-  const th = { fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', padding: '0 0.5rem 0.5rem 0.5rem' };
+  const th = { fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '0 0.25rem 0.4rem 0.25rem' };
 
   return (
     <div className="chart-card" style={{ marginTop: '1.5rem' }}>
@@ -556,45 +556,79 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
         <p style={{ margin: 0, fontSize: '0.77rem', color: summaryColor, fontWeight: 600 }}>{summaryText}</p>
       </div>
 
-      {/* Scorecard table */}
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
-            <th style={{ ...th, textAlign: 'left' }}>KPI</th>
-            <th style={{ ...th, textAlign: 'left' }}>Category</th>
-            <th style={{ ...th, textAlign: 'right' }}>vs Benchmark</th>
-            <th style={{ ...th, textAlign: 'right' }}>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {allRows.map((item, i) => {
-            const sign = item.raw > 0 ? '+' : '\u2212';
-            const statusLabel = item._sev === 'good'
-              ? (item.isOutput ? '\u2191 Above' : '\u2193 Under')
-              : (item.isOutput ? '\u2193 Below' : '\u2191 Over');
-            return (
-              <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <td style={{ padding: '0.6rem 0.5rem', fontWeight: 600, fontSize: '0.83rem', color: 'var(--text-main)' }}>
-                  {item.name}
-                </td>
-                <td style={{ padding: '0.6rem 0.5rem' }}>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--bg-outer)', border: '1px solid var(--border-color)', padding: '1px 7px', borderRadius: '4px' }}>
-                    {item.isOutput ? 'Output' : 'Consumption'}
-                  </span>
-                </td>
-                <td style={{ padding: '0.6rem 0.5rem', textAlign: 'right', fontWeight: 700, fontSize: '0.88rem', color: item._c, fontVariantNumeric: 'tabular-nums' }}>
+      {/* Premium Scorecard List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+        {/* List Header */}
+        <div style={{ display: 'flex', padding: '0 1rem', marginBottom: '0.1rem' }}>
+          <div style={{ flex: 1.5, ...th }}>KPI Metric</div>
+          <div style={{ flex: 1, ...th }}>Category</div>
+          <div style={{ flex: 1, ...th, textAlign: 'right' }}>Performance</div>
+        </div>
+
+        {allRows.map((item, i) => {
+          const sign = item.raw > 0 ? '+' : '\u2212';
+          const statusLabel = item._sev === 'good'
+            ? (item.isOutput ? '\u2191 Above Target' : '\u2193 Under Budget')
+            : (item.isOutput ? '\u2193 Below Target' : '\u2191 Over Limit');
+          
+          const isOut = item.isOutput;
+          const catColor = isOut ? '#3b82f6' : '#8b5cf6';
+          const catBg = isOut ? 'rgba(59,130,246,0.08)' : 'rgba(139,92,246,0.08)';
+
+          return (
+            <div key={i} style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              background: 'var(--bg-panel)', 
+              border: '1px solid var(--border-color)', 
+              borderRadius: '10px', 
+              padding: '0.85rem 1rem',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+            }}
+            onMouseEnter={(e) => { 
+              e.currentTarget.style.transform = 'translateY(-2px)'; 
+              e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.05)'; 
+              e.currentTarget.style.borderColor = `${item._c}40`; 
+            }}
+            onMouseLeave={(e) => { 
+              e.currentTarget.style.transform = 'none'; 
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)'; 
+              e.currentTarget.style.borderColor = 'var(--border-color)'; 
+            }}
+            >
+              <div style={{ flex: 1.5, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item._c, boxShadow: `0 0 6px ${item._c}` }} />
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>{item.name}</span>
+              </div>
+              
+              <div style={{ flex: 1 }}>
+                <span style={{ 
+                  fontSize: '0.7rem', fontWeight: 600, color: catColor, 
+                  background: catBg, border: `1px solid ${catColor}25`, 
+                  padding: '3px 8px', borderRadius: '5px' 
+                }}>
+                  {isOut ? 'Output' : 'Consumption'}
+                </span>
+              </div>
+              
+              <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.85rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '1rem', color: item._c, fontVariantNumeric: 'tabular-nums' }}>
                   {sign}{item.pct}%
-                </td>
-                <td style={{ padding: '0.6rem 0.5rem', textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: item._c, background: `${item._c}10`, border: `1px solid ${item._c}28`, padding: '2px 9px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
-                    {statusLabel}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                </span>
+                <span style={{ 
+                  fontSize: '0.7rem', fontWeight: 700, color: item._c, 
+                  background: `${item._c}12`, border: `1px solid ${item._c}30`, 
+                  padding: '3px 8px', borderRadius: '5px', whiteSpace: 'nowrap',
+                  minWidth: '95px', textAlign: 'center'
+                }}>
+                  {statusLabel}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
