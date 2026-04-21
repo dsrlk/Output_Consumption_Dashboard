@@ -1214,6 +1214,15 @@ const Dashboard = () => {
             return <div className="dashboard-grid">{renderedCards}</div>;
           })()}
 
+          {/* ── Utilities Monitor ── right after main KPI cards ── */}
+          <UtilitiesPanel
+            utilityData={utilityData}
+            utilityLoading={utilityLoading}
+            startDate={startDate}
+            endDate={endDate}
+            navigate={navigate}
+          />
+
           {selectedSectionName === 'Overall' ? (
             <SmartInsightsPanel 
               categoryData={categoryData} 
@@ -1496,15 +1505,6 @@ const Dashboard = () => {
           )}
         </>
       )}
-
-      {/* ── Utilities Monitor ── always visible below main KPI section ── */}
-      <UtilitiesPanel
-        utilityData={utilityData}
-        utilityLoading={utilityLoading}
-        startDate={startDate}
-        endDate={endDate}
-        navigate={navigate}
-      />
 
     </div>
   );
