@@ -262,7 +262,7 @@ const DataHub = () => {
           getStandards({ section_id: stdSection })
         ]);
         if (cancelled) return;
-        const filtered = kData.filter(k => k.category === 'Output' || k.category === 'Consumption');
+        const filtered = kData.filter(k => k.category === 'Output' || k.category === 'Consumption' || k.category === 'Utilities');
         setKpiList(filtered);
         const stdMap = {};
         sData.forEach(s => { stdMap[s.kpi_id] = s; });
@@ -323,10 +323,16 @@ const DataHub = () => {
 
   // Reusable KPI row — defined at top level of file to avoid remount on re-render
 
-  const GROUPS = [
-    { cat: 'Consumption', accent: 'var(--primary)', bg: 'color-mix(in srgb, var(--primary) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--primary) 8%, transparent)', desc: 'Materials & resources consumed during production' },
-    { cat: 'Output', accent: 'var(--text-main)', bg: 'color-mix(in srgb, var(--text-main) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--text-main) 8%, transparent)', desc: 'Production volumes & efficiency metrics' },
-  ];
+  const isUtilitiesSection = stdSection && sectionsList.find(s => s.id.toString() === stdSection)?.name === 'Utilities';
+
+  const GROUPS = isUtilitiesSection
+    ? [
+        { cat: 'Utilities', accent: 'var(--primary)', bg: 'color-mix(in srgb, var(--primary) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--primary) 8%, transparent)', desc: 'Electricity, Water, and Wastewater metrics' }
+      ]
+    : [
+        { cat: 'Consumption', accent: 'var(--primary)', bg: 'color-mix(in srgb, var(--primary) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--primary) 8%, transparent)', desc: 'Materials & resources consumed during production' },
+        { cat: 'Output', accent: 'var(--text-main)', bg: 'color-mix(in srgb, var(--text-main) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--text-main) 8%, transparent)', desc: 'Production volumes & efficiency metrics' },
+      ];
 
   return (
     <div>
