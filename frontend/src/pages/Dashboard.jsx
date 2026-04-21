@@ -560,9 +560,9 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
         {/* List Header */}
         <div style={{ display: 'flex', padding: '0 1rem', marginBottom: '0.1rem' }}>
-          <div style={{ flex: 1.5, ...th }}>KPI Metric</div>
-          <div style={{ flex: 1, ...th }}>Category</div>
-          <div style={{ flex: 1, ...th, textAlign: 'right' }}>Performance</div>
+          <div style={{ flex: 1, ...th }}>KPI Metric</div>
+          <div style={{ width: '120px', ...th }}>Category</div>
+          <div style={{ width: '180px', ...th, textAlign: 'right' }}>Performance</div>
         </div>
 
         {allRows.map((item, i) => {
@@ -595,12 +595,12 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
               e.currentTarget.style.borderColor = 'var(--border-color)'; 
             }}
             >
-              <div style={{ flex: 1.5, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item._c, boxShadow: `0 0 6px ${item._c}` }} />
                 <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>{item.name}</span>
               </div>
               
-              <div style={{ flex: 1 }}>
+              <div style={{ width: '120px' }}>
                 <span style={{ 
                   fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', 
                   background: 'var(--bg-outer)', border: '1px solid var(--border-color)', 
@@ -610,7 +610,7 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
                 </span>
               </div>
               
-              <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.85rem' }}>
+              <div style={{ width: '180px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.85rem' }}>
                 <span style={{ fontWeight: 800, fontSize: '1rem', color: item._c, fontVariantNumeric: 'tabular-nums' }}>
                   {sign}{item.pct}%
                 </span>
