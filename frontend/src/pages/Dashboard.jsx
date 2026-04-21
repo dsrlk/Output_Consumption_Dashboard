@@ -1528,6 +1528,17 @@ const Dashboard = () => {
         </>
       )}
 
+      {/* Render Utilities Panel at the bottom if Overall section is selected */}
+      {selectedSectionName === 'Overall' && (
+        <UtilitiesPanel 
+          utilityData={utilityData} 
+          utilityLoading={utilityLoading} 
+          startDate={startDate} 
+          endDate={endDate} 
+          navigate={navigate} 
+        />
+      )}
+
     </div>
   );
 };
