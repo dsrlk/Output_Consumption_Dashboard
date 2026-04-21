@@ -830,7 +830,8 @@ const Dashboard = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const params = { section_id: selectedSection, category: selectedCategory };
+        const actualCategory = (selectedSectionName === 'Utilities' && selectedCategory !== 'Consumption') ? 'Consumption' : selectedCategory;
+        const params = { section_id: selectedSection, category: actualCategory };
         if (startDate) params.start_date = startDate;
         if (endDate)   params.end_date   = endDate;
         
@@ -842,9 +843,18 @@ const Dashboard = () => {
           })
         ]);
         
+        let finalCData = cData;
+        let finalMData = { ...mData };
+
+        if (selectedSectionName === 'Utilities' && selectedCategory !== 'Consumption') {
+            finalCData = cData.filter(k => k.kpi_name.toLowerCase().includes(selectedCategory.toLowerCase()));
+            const allowedIds = new Set(finalCData.map(k => k.kpi_id));
+            finalMData.series = mData.series.filter(s => allowedIds.has(s.kpi_id));
+        }
+
         if (!cancelled) {
-          setCategoryData(cData);
-          setDailyMatrix(mData);
+          setCategoryData(finalCData);
+          setDailyMatrix(finalMData);
         }
       } catch (error) { 
         console.error('Error loading dashboard data', error); 
@@ -973,9 +983,21 @@ const Dashboard = () => {
               <CustomSelect 
                 value={selectedCategory} 
                 onChange={val => setSelectedCategory(val)} 
-                options={isSales 
-                  ? [{ value: 'Orders', label: 'Orders Brought In' }] 
-                  : [{ value: 'Consumption', label: 'Consumption' }, { value: 'Output', label: 'Output' }]} 
+                options={
+                  isSales 
+                    ? [{ value: 'Orders', label: 'Orders Brought In' }] 
+                    : selectedSectionName === 'Utilities'
+                      ? [
+                          { value: 'Consumption', label: 'All Utilities' },
+                          { value: 'Electricity', label: 'Electricity' },
+                          { value: 'Water', label: 'Water' },
+                          { value: 'Wastewater', label: 'Wastewater' }
+                        ]
+                      : [
+                          { value: 'Consumption', label: 'Consumption' },
+                          { value: 'Output', label: 'Output' }
+                        ]
+                }
                 style={{ width: '160px' }} 
               />
             </div>
@@ -1026,7 +1048,7 @@ const Dashboard = () => {
       )}
 
       {/* KPI Cards */}
-      {!loading && (categoryData.length > 0 || selectedSectionName === 'Utilities') && (
+      {!loading && categoryData.length > 0 && (
         <>
           {/* ── Machine filter pills + hint row ── */}
           {(() => {
@@ -1538,8 +1560,8 @@ const Dashboard = () => {
         </>
       )}
 
-      {/* Render Utilities Panel at the bottom if Overall or Utilities section is selected */}
-      {(selectedSectionName === 'Overall' || selectedSectionName === 'Utilities') && (
+      {/* Render Utilities Panel at the bottom ONLY if Overall section is selected */}
+      {selectedSectionName === 'Overall' && (
         <UtilitiesPanel 
           utilityData={utilityData} 
           utilityLoading={utilityLoading} 
