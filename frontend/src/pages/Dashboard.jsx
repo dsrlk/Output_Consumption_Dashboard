@@ -790,7 +790,13 @@ const Dashboard = () => {
       try {
         const sData = await getSections();
         // guarantee 'Overall' always appears without a backend restart
-        const enhancedData = [{ id: 0, name: 'Overall' }, ...sData.filter(s => s.id !== 0)];
+        // Add synthetic entries for Overall and Utilities
+        const hasUtilities = sData.some(s => s.name === 'Utilities');
+        const enhancedData = [
+          { id: 0, name: 'Overall' },
+          ...sData.filter(s => s.id !== 0),
+          ...(!hasUtilities ? [{ id: 'utilities', name: 'Utilities' }] : [])
+        ];
         setSectionsList(enhancedData);
         if (!selectedSection && enhancedData.length > 0) {
           setSelectedSection(String(enhancedData[0].id));
@@ -1226,7 +1232,7 @@ const Dashboard = () => {
 
             // ── Append utility KPI cards inline into the same grid ──
             // Skip when Overall (UtilitiesPanel handles it) or Utilities section (categoryData already has them)
-            if (selectedSectionName !== 'Overall' && selectedSectionName !== 'Utilities') {
+            if (selectedSectionName !== 'Utilities') {
               utilityData.forEach(kpi => {
                 const isUtilSelected = selectedUtilKpi?.kpi_id === kpi.kpi_id;
                 const hasValue = typeof kpi.value === 'number' && kpi.value > 0;
@@ -1572,16 +1578,7 @@ const Dashboard = () => {
         </>
       )}
 
-      {/* Render Utilities Panel at the bottom ONLY if Overall section is selected */}
-      {selectedSectionName === 'Overall' && (
-        <UtilitiesPanel 
-          utilityData={utilityData} 
-          utilityLoading={utilityLoading} 
-          startDate={startDate} 
-          endDate={endDate} 
-          navigate={navigate} 
-        />
-      )}
+
 
     </div>
   );
