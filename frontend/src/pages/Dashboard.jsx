@@ -1246,15 +1246,15 @@ const Dashboard = () => {
             return <div className="dashboard-grid">{renderedCards}</div>;
           })()}
 
-          {selectedSectionName === 'Overall' ? (
-            <SmartInsightsPanel 
-              categoryData={categoryData} 
-              getDeviation={getDeviation} 
-              selectedCategory={selectedCategory} 
-              selectedSectionName={selectedSectionName} 
-            />
-          ) : (
-            <>
+          {/* Always render the SmartInsightsPanel (Performance Analysis grid) regardless of section */}
+          <SmartInsightsPanel 
+            categoryData={categoryData} 
+            getDeviation={getDeviation} 
+            selectedCategory={selectedCategory} 
+            selectedSectionName={selectedSectionName} 
+          />
+
+          <>
               {(() => {
                 const groups = groupKpis(categoryData);
                 const hasGroups = groups.some(g => g.groupLabel !== null);
@@ -1525,7 +1525,6 @@ const Dashboard = () => {
                 );
               })()}
             </>
-          )}
         </>
       )}
 
