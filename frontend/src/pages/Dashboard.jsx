@@ -556,70 +556,46 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
         <p style={{ margin: 0, fontSize: '0.77rem', color: summaryColor, fontWeight: 600 }}>{summaryText}</p>
       </div>
 
-      {/* Premium Scorecard List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-        {/* List Header */}
-        <div style={{ display: 'flex', padding: '0 1rem', marginBottom: '0.1rem' }}>
-          <div style={{ flex: 1, ...th }}>KPI Metric</div>
-          <div style={{ width: '120px', ...th }}>Category</div>
-          <div style={{ width: '180px', ...th, textAlign: 'right' }}>Performance</div>
-        </div>
-
+      {/* Grid of Insight Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
         {allRows.map((item, i) => {
           const sign = item.raw > 0 ? '+' : '\u2212';
           const statusLabel = item._sev === 'good'
-            ? (item.isOutput ? '\u2191 Above Target' : '\u2193 Under Budget')
-            : (item.isOutput ? '\u2193 Below Target' : '\u2191 Over Limit');
+            ? (item.isOutput ? 'Exceeding Target' : 'Within Budget')
+            : (item.isOutput ? 'Falling Short' : 'Over Budget');
           
-          const isOut = item.isOutput;
-
           return (
             <div key={i} style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              background: 'var(--bg-panel)', 
-              border: '1px solid var(--border-color)', 
-              borderRadius: '10px', 
-              padding: '0.85rem 1rem',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+              background: 'var(--bg-panel)', border: '1px solid var(--border-color)', 
+              borderRadius: '12px', padding: '1.2rem 1.25rem',
+              display: 'flex', flexDirection: 'column', gap: '0.8rem',
+              transition: 'all 0.2s ease', boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
             }}
-            onMouseEnter={(e) => { 
-              e.currentTarget.style.transform = 'translateY(-2px)'; 
-              e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.05)'; 
-              e.currentTarget.style.borderColor = `${item._c}40`; 
-            }}
-            onMouseLeave={(e) => { 
-              e.currentTarget.style.transform = 'none'; 
-              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)'; 
-              e.currentTarget.style.borderColor = 'var(--border-color)'; 
-            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.05)'; e.currentTarget.style.borderColor = `${item._c}50`; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
             >
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item._c, boxShadow: `0 0 6px ${item._c}` }} />
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>{item.name}</span>
-              </div>
-              
-              <div style={{ width: '120px' }}>
-                <span style={{ 
-                  fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', 
-                  background: 'var(--bg-outer)', border: '1px solid var(--border-color)', 
-                  padding: '3px 8px', borderRadius: '5px' 
-                }}>
-                  {isOut ? 'Output' : 'Consumption'}
+              {/* Header: Name + Category */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item._c, boxShadow: `0 0 8px ${item._c}` }} />
+                  <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>{item.name}</span>
+                </div>
+                <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-outer)', border: '1px solid var(--border-color)', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  {item.isOutput ? 'Output' : 'Consumption'}
                 </span>
               </div>
               
-              <div style={{ width: '180px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.85rem' }}>
-                <span style={{ fontWeight: 800, fontSize: '1rem', color: item._c, fontVariantNumeric: 'tabular-nums' }}>
+              {/* Data: Value */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginTop: '0.2rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '1.6rem', color: item._c, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                   {sign}{item.pct}%
                 </span>
-                <span style={{ 
-                  fontSize: '0.7rem', fontWeight: 700, color: item._c, 
-                  background: `${item._c}12`, border: `1px solid ${item._c}30`, 
-                  padding: '3px 8px', borderRadius: '5px', whiteSpace: 'nowrap',
-                  minWidth: '95px', textAlign: 'center'
-                }}>
+              </div>
+
+              {/* Status / Verdict */}
+              <div style={{ marginTop: 'auto', paddingTop: '0.85rem', borderTop: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Performance Status</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: item._c, background: `${item._c}12`, border: `1px solid ${item._c}30`, padding: '3px 8px', borderRadius: '5px' }}>
                   {statusLabel}
                 </span>
               </div>
