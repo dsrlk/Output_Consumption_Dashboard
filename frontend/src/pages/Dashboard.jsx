@@ -419,8 +419,8 @@ function groupKpis(kpis) {
     const p = getKpiPrefix(k.kpi_name);
     if (p) prefixCount[p] = (prefixCount[p] || 0) + 1;
   });
-  // Only valid if ≥ 2 KPIs share the prefix
-  const validPrefixes = new Set(Object.keys(prefixCount).filter(p => prefixCount[p] >= 2));
+  // Create a group even if there's only 1 KPI for that prefix
+  const validPrefixes = new Set(Object.keys(prefixCount).filter(p => prefixCount[p] >= 1));
 
   // Build groups preserving original ordering
   const buckets = {};   // prefix → items[]
