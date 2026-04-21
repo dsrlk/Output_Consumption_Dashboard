@@ -572,8 +572,6 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
             : (item.isOutput ? '\u2193 Below Target' : '\u2191 Over Limit');
           
           const isOut = item.isOutput;
-          const catColor = isOut ? '#3b82f6' : '#8b5cf6';
-          const catBg = isOut ? 'rgba(59,130,246,0.08)' : 'rgba(139,92,246,0.08)';
 
           return (
             <div key={i} style={{ 
@@ -604,8 +602,8 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
               
               <div style={{ flex: 1 }}>
                 <span style={{ 
-                  fontSize: '0.7rem', fontWeight: 600, color: catColor, 
-                  background: catBg, border: `1px solid ${catColor}25`, 
+                  fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', 
+                  background: 'var(--bg-outer)', border: '1px solid var(--border-color)', 
                   padding: '3px 8px', borderRadius: '5px' 
                 }}>
                   {isOut ? 'Output' : 'Consumption'}
