@@ -1,18 +1,18 @@
 import React, { createContext, useContext, useState } from 'react';
 
-// Helper: Start of previous month (yyyy-mm-dd)
-const getStartOfPreviousMonth = () => {
+// Helper: Start of current month (yyyy-mm-dd)
+const getStartOfCurrentMonth = () => {
   const now = new Date();
-  const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-  const month = now.getMonth() === 0 ? 12 : now.getMonth();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
   return `${year}-${String(month).padStart(2, '0')}-01`;
 };
 
-// Helper: End of previous month (yyyy-mm-dd)
-const getEndOfPreviousMonth = () => {
+// Helper: End of current month (yyyy-mm-dd)
+const getEndOfCurrentMonth = () => {
   const now = new Date();
-  const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-  const month = now.getMonth() === 0 ? 12 : now.getMonth();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
   const lastDay = new Date(year, month, 0).getDate();
   return `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 };
@@ -23,8 +23,8 @@ export const FilterProvider = ({ children }) => {
   // Global shared filter state — survives tab switches
   const [selectedSection, setSelectedSection] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Consumption');
-  const [startDate, setStartDate] = useState(getStartOfPreviousMonth());
-  const [endDate, setEndDate] = useState(getEndOfPreviousMonth());
+  const [startDate, setStartDate] = useState(getStartOfCurrentMonth());
+  const [endDate, setEndDate] = useState(getEndOfCurrentMonth());
 
 
   return (
