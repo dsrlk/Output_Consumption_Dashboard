@@ -830,7 +830,7 @@ const Dashboard = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const actualCategory = (selectedSectionName === 'Utilities' && selectedCategory !== 'Consumption') ? 'Consumption' : selectedCategory;
+        const actualCategory = selectedSectionName === 'Utilities' ? 'Utilities' : selectedCategory;
         const params = { section_id: selectedSection, category: actualCategory };
         if (startDate) params.start_date = startDate;
         if (endDate)   params.end_date   = endDate;
