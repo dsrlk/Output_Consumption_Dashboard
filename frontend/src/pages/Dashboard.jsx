@@ -622,7 +622,17 @@ const UTIL_CONFIG = {
 const UtilitiesPanel = ({ utilityData, utilityLoading, startDate, endDate, navigate }) => {
   const [selectedUtilKpi, setSelectedUtilKpi] = useState(null);
 
-  if (!utilityLoading && utilityData.length === 0) return null;
+  if (!utilityLoading && utilityData.length === 0) {
+    return (
+      <div style={{ marginTop: '2.5rem', height: '250px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+        <div style={{ background: 'var(--bg-outer)', padding: '16px', borderRadius: '50%', marginBottom: '16px' }}>
+          <span style={{ fontSize: '1.5rem', opacity: 0.5 }}>⚡</span>
+        </div>
+        <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>No Utility Data</div>
+        <div style={{ fontSize: '0.85rem', marginTop: '6px' }}>There are no utility meter readings for this period.</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ marginTop: '2.5rem' }}>
@@ -1005,7 +1015,7 @@ const Dashboard = () => {
       )}
 
       {/* Empty State */}
-      {!loading && categoryData.length === 0 && (
+      {!loading && categoryData.length === 0 && selectedSectionName !== 'Utilities' && (
         <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
           <div style={{ background: 'var(--bg-outer)', padding: '16px', borderRadius: '50%', marginBottom: '16px' }}>
             <BarChart2 size={32} opacity={0.5} />
@@ -1016,7 +1026,7 @@ const Dashboard = () => {
       )}
 
       {/* KPI Cards */}
-      {!loading && categoryData.length > 0 && (
+      {!loading && (categoryData.length > 0 || selectedSectionName === 'Utilities') && (
         <>
           {/* ── Machine filter pills + hint row ── */}
           {(() => {
@@ -1528,8 +1538,8 @@ const Dashboard = () => {
         </>
       )}
 
-      {/* Render Utilities Panel at the bottom if Overall section is selected */}
-      {selectedSectionName === 'Overall' && (
+      {/* Render Utilities Panel at the bottom if Overall or Utilities section is selected */}
+      {(selectedSectionName === 'Overall' || selectedSectionName === 'Utilities') && (
         <UtilitiesPanel 
           utilityData={utilityData} 
           utilityLoading={utilityLoading} 
