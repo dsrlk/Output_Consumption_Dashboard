@@ -981,7 +981,7 @@ const Dashboard = () => {
             <CustomSelect 
               value={String(selectedSection)} 
               onChange={val => setSelectedSection(val)} 
-              options={sectionsList.filter(s => s.name !== 'Utilities').map(s => ({ value: String(s.id), label: s.name }))} 
+              options={sectionsList.map(s => ({ value: String(s.id), label: s.name }))} 
               style={{ width: '180px' }} 
             />
           </div>
@@ -995,10 +995,17 @@ const Dashboard = () => {
                 options={
                   isSales 
                     ? [{ value: 'Orders', label: 'Orders Brought In' }] 
-                    : [
-                        { value: 'Consumption', label: 'Consumption' },
-                        { value: 'Output', label: 'Output' }
-                      ]
+                    : selectedSectionName === 'Utilities'
+                      ? [
+                          { value: 'Consumption', label: 'All Utilities' },
+                          { value: 'Electricity', label: 'Electricity' },
+                          { value: 'Water', label: 'Water' },
+                          { value: 'Wastewater', label: 'Wastewater' }
+                        ]
+                      : [
+                          { value: 'Consumption', label: 'Consumption' },
+                          { value: 'Output', label: 'Output' }
+                        ]
                 }
                 style={{ width: '160px' }} 
               />
@@ -1218,63 +1225,65 @@ const Dashboard = () => {
               }
 
             // ── Append utility KPI cards inline into the same grid ──
-            utilityData.forEach(kpi => {
-              const isUtilSelected = selectedUtilKpi?.kpi_id === kpi.kpi_id;
-              const hasValue = typeof kpi.value === 'number' && kpi.value > 0;
-              const isZero   = typeof kpi.value === 'number' && kpi.value === 0;
-              renderedCards.push(
-                <SpotlightCard
-                  id={`util-card-${kpi.kpi_id}`}
-                  key={`util-${kpi.kpi_id}`}
-                  className={`dribbble-card ${isUtilSelected ? 'selected' : ''}`}
-                  spotlightColor="rgba(15, 23, 42, 0.08)"
-                  onClick={() => { setSelectedUtilKpi(isUtilSelected ? null : kpi); setSelectedKpi(null); }}
-                  style={{ outline: isUtilSelected ? '2px solid var(--primary)' : 'none', outlineOffset: '2px', cursor: 'pointer', position: 'relative' }}
-                >
-                  <div className="dribbble-header">
-                    <span className="dribbble-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {kpi.kpi_name}
-                      {isUtilSelected && <span style={{ background: 'var(--primary)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.04em' }}>SELECTED</span>}
-                    </span>
-                    <button className="dribbble-action">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
+            // Skip when Overall (UtilitiesPanel handles it) or Utilities section (categoryData already has them)
+            if (selectedSectionName !== 'Overall' && selectedSectionName !== 'Utilities') {
+              utilityData.forEach(kpi => {
+                const isUtilSelected = selectedUtilKpi?.kpi_id === kpi.kpi_id;
+                const hasValue = typeof kpi.value === 'number' && kpi.value > 0;
+                const isZero   = typeof kpi.value === 'number' && kpi.value === 0;
+                renderedCards.push(
+                  <SpotlightCard
+                    id={`util-card-${kpi.kpi_id}`}
+                    key={`util-${kpi.kpi_id}`}
+                    className={`dribbble-card ${isUtilSelected ? 'selected' : ''}`}
+                    spotlightColor="rgba(15, 23, 42, 0.08)"
+                    onClick={() => { setSelectedUtilKpi(isUtilSelected ? null : kpi); setSelectedKpi(null); }}
+                    style={{ outline: isUtilSelected ? '2px solid var(--primary)' : 'none', outlineOffset: '2px', cursor: 'pointer', position: 'relative' }}
+                  >
+                    <div className="dribbble-header">
+                      <span className="dribbble-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {kpi.kpi_name}
+                        {isUtilSelected && <span style={{ background: 'var(--primary)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.04em' }}>SELECTED</span>}
+                      </span>
+                      <button className="dribbble-action">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </div>
+                    <div className="dribbble-value">
+                      {hasValue
+                        ? <CountUp to={kpi.value} duration={0.8} />
+                        : isZero
+                          ? <span>0</span>
+                          : <span style={{ color: 'var(--text-muted)' }}>N/A</span>}
+                      {kpi.unit && (hasValue || isZero) && <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '4px' }}>{kpi.unit}</span>}
+                    </div>
+                    <div className="dribbble-footer">
+                      <span className="dribbble-trend-pill neutral">—</span>
+                      <span>Total captured range</span>
+                    </div>
+                  </SpotlightCard>
+                );
+              });
+              if (selectedUtilKpi) {
+                renderedCards.push(
+                  <div key="util-detail-panel" style={{ gridColumn: '1 / -1', width: '100%', marginBottom: '0.5rem', animation: 'fadeUp 0.3s ease-out' }}>
+                    <KpiDetailPanel
+                      kpi={selectedUtilKpi}
+                      standard={null}
+                      standardMeta={null}
+                      selectedSection={0}
+                      startDate={startDate}
+                      endDate={endDate}
+                      onClose={() => setSelectedUtilKpi(null)}
+                      isOutput={false}
+                      navigate={navigate}
+                      setViewMode={null}
+                      viewMode="total"
+                      totalWeightKg={null}
+                    />
                   </div>
-                  <div className="dribbble-value">
-                    {hasValue
-                      ? <CountUp to={kpi.value} duration={0.8} />
-                      : isZero
-                        ? <span>0</span>
-                        : <span style={{ color: 'var(--text-muted)' }}>N/A</span>}
-                    {kpi.unit && (hasValue || isZero) && <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '4px' }}>{kpi.unit}</span>}
-                  </div>
-                  <div className="dribbble-footer">
-                    <span className="dribbble-trend-pill neutral">—</span>
-                    <span>Total captured range</span>
-                  </div>
-                </SpotlightCard>
-              );
-            });
-            if (selectedUtilKpi) {
-              renderedCards.push(
-                <div key="util-detail-panel" style={{ gridColumn: '1 / -1', width: '100%', marginBottom: '0.5rem', animation: 'fadeUp 0.3s ease-out' }}>
-                  <KpiDetailPanel
-                    kpi={selectedUtilKpi}
-                    standard={null}
-                    standardMeta={null}
-                    selectedSection={0}
-                    startDate={startDate}
-                    endDate={endDate}
-                    onClose={() => setSelectedUtilKpi(null)}
-                    isOutput={false}
-                    navigate={navigate}
-                    setViewMode={null}
-                    viewMode="total"
-                    totalWeightKg={null}
-                  />
-                </div>
-              );
-            }
+                );
+              }
             }
 
 
@@ -1561,6 +1570,17 @@ const Dashboard = () => {
               })()}
             </>
         </>
+      )}
+
+      {/* Render Utilities Panel at the bottom ONLY if Overall section is selected */}
+      {selectedSectionName === 'Overall' && (
+        <UtilitiesPanel 
+          utilityData={utilityData} 
+          utilityLoading={utilityLoading} 
+          startDate={startDate} 
+          endDate={endDate} 
+          navigate={navigate} 
+        />
       )}
 
     </div>
