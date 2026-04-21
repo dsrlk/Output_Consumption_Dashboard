@@ -500,26 +500,30 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
 
   const InsightRow = ({ item, accentColor }) => {
     const barWidth = Math.min((parseFloat(item.pct) / maxPct) * 100, 100);
-    const sign = item.raw > 0 ? '+' : '−';
+    const sign = item.raw > 0 ? '+' : '\u2212';
+    // Build a plain-language verdict for the row
+    const verb = item.isOutput
+      ? (item.isGood ? 'Output exceeded target by' : 'Output fell short of target by')
+      : (item.isGood ? 'Consumption was under target by' : 'Consumption exceeded target by');
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.5rem 1.5rem', padding: '0.65rem 0', borderBottom: '1px solid var(--border-color)', alignItems: 'center' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.28rem' }}>
+      <div style={{ padding: '0.7rem 0', borderBottom: '1px solid var(--border-color)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '0.35rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ width: '3px', height: '14px', borderRadius: '2px', background: accentColor, flexShrink: 0 }} />
-            <span style={{ fontWeight: 600, fontSize: '0.83rem', color: 'var(--text-main)' }}>{item.name}</span>
+            <span style={{ width: '3px', height: '16px', borderRadius: '2px', background: accentColor, flexShrink: 0 }} />
+            <span style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-main)' }}>{item.name}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingLeft: '11px' }}>
-            <div style={{ flex: 1, height: '2px', background: 'var(--border-color)', borderRadius: '2px', maxWidth: '220px' }}>
-              <div style={{ height: '100%', width: `${barWidth}%`, background: accentColor, borderRadius: '2px', transition: 'width 0.6s ease' }} />
+          <span style={{ fontWeight: 700, fontSize: '0.88rem', color: accentColor, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+            {sign}{item.pct}%
+          </span>
+        </div>
+        <div style={{ paddingLeft: '11px', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ width: '180px', height: '4px', background: 'var(--border-color)', borderRadius: '4px', flexShrink: 0 }}>
+              <div style={{ height: '100%', width: `${barWidth}%`, background: accentColor, borderRadius: '4px', transition: 'width 0.6s ease' }} />
             </div>
-            <span style={{ fontSize: '0.67rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-              {item.isOutput ? 'output' : 'consumption'} vs benchmark
-            </span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{verb} <strong style={{ color: accentColor }}>{item.pct}%</strong></span>
           </div>
         </div>
-        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: accentColor, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', minWidth: '52px', textAlign: 'right' }}>
-          {sign}{item.pct}%
-        </span>
       </div>
     );
   };
