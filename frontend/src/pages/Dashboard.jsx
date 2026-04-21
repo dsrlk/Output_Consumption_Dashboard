@@ -478,165 +478,110 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
   if (alerts.length === 0 && topPerformers.length === 0) {
     return (
       <div className="chart-card" style={{ marginTop: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.75rem' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>📊</div>
-          <div>
-            <h3 className="card-title" style={{ margin: 0 }}>Automated Insights — {selectedSectionName}</h3>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>No benchmarks defined</p>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+          <h3 className="card-title" style={{ margin: 0 }}>Performance Analysis</h3>
+          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', background: 'var(--bg-outer)', border: '1px solid var(--border-color)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, letterSpacing: '0.05em' }}>NO BENCHMARKS</span>
         </div>
-        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.6, borderLeft: '3px solid var(--border-color)', paddingLeft: '0.75rem' }}>
-          No standard benchmarks are defined for these metrics. Define benchmarks in the Data Hub to unlock automated performance analysis.
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.6, borderLeft: '2px solid var(--border-color)', paddingLeft: '0.75rem', margin: 0 }}>
+          Define benchmarks in the Data Hub to unlock automated performance analysis.
         </p>
       </div>
     );
   }
 
-  const isOutput = selectedCategory === 'Output';
   const total = alerts.length + topPerformers.length;
-
   const critical = alerts.filter(a => parseFloat(a.pct) >= 20);
   const warning  = alerts.filter(a => parseFloat(a.pct) >= 10 && parseFloat(a.pct) < 20);
   const minor    = alerts.filter(a => parseFloat(a.pct) < 10);
-
   const maxPct = Math.max(...[...alerts, ...topPerformers].map(i => parseFloat(i.pct)), 1);
   const healthScore = total > 0 ? Math.round((topPerformers.length / total) * 100) : 0;
-  const healthColor = healthScore >= 70 ? '#22c55e' : healthScore >= 40 ? '#f59e0b' : '#ef4444';
+  const healthColor = healthScore >= 70 ? '#16a34a' : healthScore >= 40 ? '#b45309' : '#b91c1c';
+  const healthBg    = healthScore >= 70 ? 'rgba(22,163,74,0.06)' : healthScore >= 40 ? 'rgba(180,83,9,0.06)' : 'rgba(185,28,28,0.06)';
 
-  // Reusable severity row with deviation bar
-  const SeverityRow = ({ item, color, bgColor, borderColor, barGradient }) => {
+  const InsightRow = ({ item, accentColor }) => {
     const barWidth = Math.min((parseFloat(item.pct) / maxPct) * 100, 100);
-    const itemIsOutput = item.isOutput;
+    const sign = item.raw > 0 ? '+' : '−';
     return (
-      <div style={{ background: bgColor, border: `1px solid ${borderColor}`, borderRadius: '10px', padding: '0.8rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-color)' }}>{item.name}</span>
-          <span style={{ fontWeight: 800, fontSize: '0.88rem', color, background: `${color}18`, padding: '3px 11px', borderRadius: '999px' }}>
-            {item.raw > 0 ? '+' : '-'}{item.pct}%
-          </span>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.5rem 1.5rem', padding: '0.65rem 0', borderBottom: '1px solid var(--border-color)', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.28rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ width: '3px', height: '14px', borderRadius: '2px', background: accentColor, flexShrink: 0 }} />
+            <span style={{ fontWeight: 600, fontSize: '0.83rem', color: 'var(--text-main)' }}>{item.name}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingLeft: '11px' }}>
+            <div style={{ flex: 1, height: '2px', background: 'var(--border-color)', borderRadius: '2px', maxWidth: '220px' }}>
+              <div style={{ height: '100%', width: `${barWidth}%`, background: accentColor, borderRadius: '2px', transition: 'width 0.6s ease' }} />
+            </div>
+            <span style={{ fontSize: '0.67rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              {item.isOutput ? 'output' : 'consumption'} vs benchmark
+            </span>
+          </div>
         </div>
-        <div style={{ position: 'relative', height: '6px', borderRadius: '99px', background: 'rgba(0,0,0,0.07)' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${barWidth}%`, background: barGradient, borderRadius: '99px', transition: 'width 0.7s cubic-bezier(.4,0,.2,1)' }} />
-        </div>
-        <span style={{ fontSize: '0.71rem', color, opacity: 0.85 }}>
-          {itemIsOutput ? 'Output is below benchmark by' : 'Usage is over benchmark by'} <strong>{item.pct}%</strong>
+        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: accentColor, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', minWidth: '52px', textAlign: 'right' }}>
+          {sign}{item.pct}%
         </span>
       </div>
     );
   };
 
+  const SectionLabel = ({ label, description, dotColor }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', paddingBottom: '0.15rem' }}>
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
+      <span style={{ fontSize: '0.67rem', color: 'var(--text-muted)' }}>{description}</span>
+    </div>
+  );
+
   return (
-    <div className="chart-card" style={{ marginTop: '1.5rem', paddingBottom: '1.75rem' }}>
-
-      {/* Header + Summary */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
+    <div className="chart-card" style={{ marginTop: '1.5rem' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h3 className="card-title" style={{ marginBottom: '0.2rem' }}>Automated Insights — {selectedSectionName}</h3>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Benchmark performance analysis for the selected period</p>
+          <h3 className="card-title" style={{ marginBottom: '0.15rem' }}>Performance Analysis</h3>
+          <p style={{ fontSize: '0.73rem', color: 'var(--text-muted)', margin: 0 }}>Benchmark deviation · {selectedSectionName}</p>
         </div>
-
-        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Health Score ring */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: `${healthColor}12`, border: `1.5px solid ${healthColor}40`, borderRadius: '12px', padding: '0.45rem 1rem' }}>
-            <div style={{ position: 'relative', width: '32px', height: '32px' }}>
-              <svg width="32" height="32" viewBox="0 0 32 32">
-                <circle cx="16" cy="16" r="13" fill="none" stroke="var(--border-color)" strokeWidth="3" />
-                <circle cx="16" cy="16" r="13" fill="none" stroke={healthColor} strokeWidth="3"
-                  strokeDasharray={`${(healthScore / 100) * 81.7} 81.7`} strokeLinecap="round" transform="rotate(-90 16 16)" />
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: healthBg, border: `1px solid ${healthColor}28`, borderRadius: '8px', padding: '0.4rem 0.85rem' }}>
+            <div style={{ position: 'relative', width: '28px', height: '28px' }}>
+              <svg width="28" height="28" viewBox="0 0 28 28">
+                <circle cx="14" cy="14" r="11" fill="none" stroke="var(--border-color)" strokeWidth="2.5" />
+                <circle cx="14" cy="14" r="11" fill="none" stroke={healthColor} strokeWidth="2.5"
+                  strokeDasharray={`${(healthScore / 100) * 69.1} 69.1`} strokeLinecap="round" transform="rotate(-90 14 14)" />
               </svg>
-              <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.58rem', fontWeight: 800, color: healthColor }}>{healthScore}</span>
+              <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.52rem', fontWeight: 800, color: healthColor }}>{healthScore}</span>
             </div>
             <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: healthColor }}>Health Score</div>
-              <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{topPerformers.length}/{total} on target</div>
+              <div style={{ fontSize: '0.67rem', fontWeight: 700, color: healthColor, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Health</div>
+              <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{topPerformers.length}/{total} on target</div>
             </div>
           </div>
-
-          <div style={{ textAlign: 'center', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px', padding: '0.45rem 1rem' }}>
-            <div style={{ fontWeight: 800, fontSize: '1.3rem', color: '#ef4444', lineHeight: 1 }}>{alerts.length}</div>
-            <div style={{ fontSize: '0.62rem', color: '#b91c1c', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '2px' }}>Over Limit</div>
-          </div>
-
-          <div style={{ textAlign: 'center', background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '10px', padding: '0.45rem 1rem' }}>
-            <div style={{ fontWeight: 800, fontSize: '1.3rem', color: '#22c55e', lineHeight: 1 }}>{topPerformers.length}</div>
-            <div style={{ fontSize: '0.62rem', color: '#15803d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '2px' }}>On Target</div>
+          <div style={{ display: 'flex', gap: '1.25rem' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 800, fontSize: '1.4rem', color: alerts.length > 0 ? '#b91c1c' : 'var(--text-muted)', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{alerts.length}</div>
+              <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: '2px' }}>Off Target</div>
+            </div>
+            <div style={{ width: '1px', background: 'var(--border-color)', alignSelf: 'stretch' }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 800, fontSize: '1.4rem', color: topPerformers.length > 0 ? '#16a34a' : 'var(--text-muted)', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{topPerformers.length}</div>
+              <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: '2px' }}>On Target</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-
-        {critical.length > 0 && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.8rem' }}>
-              <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.64rem', fontWeight: 800, padding: '3px 10px', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>🔴 Critical</span>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>≥ 20% over benchmark — immediate action needed</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-              {critical.map((a, i) => <SeverityRow key={i} item={a} color="#dc2626" bgColor="rgba(239,68,68,0.05)" borderColor="rgba(239,68,68,0.22)" barGradient="linear-gradient(90deg,#ef4444,#f87171)" />)}
-            </div>
-          </div>
-        )}
-
-        {warning.length > 0 && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.8rem' }}>
-              <span style={{ background: '#f59e0b', color: '#fff', fontSize: '0.64rem', fontWeight: 800, padding: '3px 10px', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>🟡 Warning</span>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>10–20% over benchmark — monitor closely</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-              {warning.map((a, i) => <SeverityRow key={i} item={a} color="#d97706" bgColor="rgba(245,158,11,0.05)" borderColor="rgba(245,158,11,0.22)" barGradient="linear-gradient(90deg,#f59e0b,#fcd34d)" />)}
-            </div>
-          </div>
-        )}
-
-        {minor.length > 0 && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.8rem' }}>
-              <span style={{ background: '#64748b', color: '#fff', fontSize: '0.64rem', fontWeight: 800, padding: '3px 10px', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>🔵 Minor</span>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>&lt; 10% over benchmark — within acceptable range</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-              {minor.map((a, i) => <SeverityRow key={i} item={a} color="#475569" bgColor="rgba(100,116,139,0.05)" borderColor="rgba(100,116,139,0.18)" barGradient="linear-gradient(90deg,#64748b,#94a3b8)" />)}
-            </div>
-          </div>
-        )}
-
-        {topPerformers.length > 0 && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.8rem' }}>
-              <span style={{ background: '#22c55e', color: '#fff', fontSize: '0.64rem', fontWeight: 800, padding: '3px 10px', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>🟢 Within Target</span>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                At or above/below their individual benchmarks — efficient
-              </span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-              {topPerformers.map((p, i) => {
-                const barWidth = Math.min((parseFloat(p.pct) / maxPct) * 100, 100);
-                return (
-                  <div key={i} style={{ background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.18)', borderRadius: '10px', padding: '0.8rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-color)' }}>{p.name}</span>
-                      <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#16a34a', background: 'rgba(34,197,94,0.12)', padding: '3px 11px', borderRadius: '999px' }}>
-                        {p.raw > 0 ? '+' : '-'}{p.pct}%
-                      </span>
-                    </div>
-                    <div style={{ position: 'relative', height: '6px', borderRadius: '99px', background: 'rgba(0,0,0,0.07)' }}>
-                      <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${barWidth}%`, background: 'linear-gradient(90deg,#22c55e,#4ade80)', borderRadius: '99px', transition: 'width 0.7s cubic-bezier(.4,0,.2,1)' }} />
-                    </div>
-                    <span style={{ fontSize: '0.71rem', color: '#15803d', opacity: 0.85 }}>
-                      {p.isOutput ? 'Output exceeds' : 'Usage is under'} benchmark by <strong>{p.pct}%</strong>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+      {/* Rows */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {critical.length > 0 && <div><SectionLabel label="Critical" description="≥†20% over benchmark" dotColor="#b91c1c" />{critical.map((a, i) => <InsightRow key={i} item={a} accentColor="#b91c1c" />)}</div>}
+        {warning.length > 0  && <div><SectionLabel label="Warning"  description="10–†20% over benchmark" dotColor="#b45309" />{warning.map((a, i)  => <InsightRow key={i} item={a} accentColor="#b45309" />)}</div>}
+        {minor.length > 0    && <div><SectionLabel label="Minor"    description="< 10% over benchmark"  dotColor="#64748b" />{minor.map((a, i)    => <InsightRow key={i} item={a} accentColor="#64748b" />)}</div>}
+        {topPerformers.length > 0 && <div><SectionLabel label="Within Target" description="at or within benchmark" dotColor="#16a34a" />{topPerformers.map((p, i) => <InsightRow key={i} item={p} accentColor="#16a34a" />)}</div>}
       </div>
     </div>
   );
 };
+
+
+
 
 // ── Utilities Monitor Panel ─────────────────────────────────────────────────────
 const UTIL_CONFIG = {
