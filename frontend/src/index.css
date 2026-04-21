@@ -85,7 +85,9 @@ h1, h2, h3, h4, h5, h6, .page-title, .card-title {
 
 .topbar-logo {
   height: 26px;
+  width: auto;
   object-fit: contain;
+  flex-shrink: 0;
 }
 
 .topbar-title {
