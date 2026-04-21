@@ -1216,6 +1216,7 @@ const Dashboard = () => {
             utilityData.forEach(kpi => {
               const isUtilSelected = selectedUtilKpi?.kpi_id === kpi.kpi_id;
               const hasValue = typeof kpi.value === 'number' && kpi.value > 0;
+              const isZero   = typeof kpi.value === 'number' && kpi.value === 0;
               renderedCards.push(
                 <SpotlightCard
                   id={`util-card-${kpi.kpi_id}`}
@@ -1235,8 +1236,12 @@ const Dashboard = () => {
                     </button>
                   </div>
                   <div className="dribbble-value">
-                    {hasValue ? <CountUp to={kpi.value} duration={0.8} /> : <span style={{ color: 'var(--text-muted)' }}>N/A</span>}
-                    {kpi.unit && hasValue && <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '4px' }}>{kpi.unit}</span>}
+                    {hasValue
+                      ? <CountUp to={kpi.value} duration={0.8} />
+                      : isZero
+                        ? <span>0</span>
+                        : <span style={{ color: 'var(--text-muted)' }}>N/A</span>}
+                    {kpi.unit && (hasValue || isZero) && <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '4px' }}>{kpi.unit}</span>}
                   </div>
                   <div className="dribbble-footer">
                     <span className="dribbble-trend-pill neutral">—</span>
