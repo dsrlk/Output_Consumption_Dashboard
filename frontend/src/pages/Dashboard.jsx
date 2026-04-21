@@ -1037,7 +1037,7 @@ const Dashboard = () => {
       )}
 
       {/* Empty State */}
-      {!loading && categoryData.length === 0 && selectedSectionName !== 'Utilities' && (
+      {!loading && categoryData.length === 0 && (
         <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
           <div style={{ background: 'var(--bg-outer)', padding: '16px', borderRadius: '50%', marginBottom: '16px' }}>
             <BarChart2 size={32} opacity={0.5} />
