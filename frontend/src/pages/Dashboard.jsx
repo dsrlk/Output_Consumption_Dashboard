@@ -493,51 +493,31 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
   const critical = alerts.filter(a => parseFloat(a.pct) >= 20);
   const warning  = alerts.filter(a => parseFloat(a.pct) >= 10 && parseFloat(a.pct) < 20);
   const minor    = alerts.filter(a => parseFloat(a.pct) < 10);
-  const maxPct = Math.max(...[...alerts, ...topPerformers].map(i => parseFloat(i.pct)), 1);
+  const maxPct   = Math.max(...[...alerts, ...topPerformers].map(i => parseFloat(i.pct)), 1);
   const healthScore = total > 0 ? Math.round((topPerformers.length / total) * 100) : 0;
   const healthColor = healthScore >= 70 ? '#16a34a' : healthScore >= 40 ? '#b45309' : '#b91c1c';
   const healthBg    = healthScore >= 70 ? 'rgba(22,163,74,0.06)' : healthScore >= 40 ? 'rgba(180,83,9,0.06)' : 'rgba(185,28,28,0.06)';
 
-  const InsightRow = ({ item, accentColor }) => {
-    const barWidth = Math.min((parseFloat(item.pct) / maxPct) * 100, 100);
-    const sign = item.raw > 0 ? '+' : '−';
-    const label = item.isOutput
-      ? (item.isGood ? 'Above Target' : 'Below Target')
-      : (item.isGood ? 'Under Budget' : 'Over Budget');
-    const sentence = item.isOutput
-      ? (item.isGood
-          ? `Produced ${item.pct}% above the benchmark — output is exceeding the standard target`
-          : `Produced ${item.pct}% below the benchmark — output is falling short of the standard target`)
-      : (item.isGood
-          ? `Consumed ${item.pct}% less than the benchmark — usage is within the acceptable limit`
-          : `Consumed ${item.pct}% more than the benchmark — usage has exceeded the set limit`);
-    return (
-      <div style={{ padding: '0.8rem 0', borderBottom: '1px solid var(--border-color)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-          <span style={{ fontSize: '0.59rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', background: `${accentColor}12`, color: accentColor, border: `1px solid ${accentColor}28`, padding: '2px 7px', borderRadius: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}>{label}</span>
-          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', flex: 1 }}>{item.name}</span>
-          <span style={{ fontWeight: 800, fontSize: '0.9rem', color: accentColor, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{sign}{item.pct}%</span>
-        </div>
-        <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.73rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{sentence}</p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <div style={{ width: '160px', height: '4px', background: 'var(--border-color)', borderRadius: '4px', flexShrink: 0 }}>
-            <div style={{ height: '100%', width: `${barWidth}%`, background: accentColor, borderRadius: '4px', transition: 'width 0.6s ease' }} />
-          </div>
-          <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>deviation magnitude</span>
-        </div>
-      </div>
-    );
-  };
+  const allRows = [
+    ...critical.map(a      => ({ ...a, _c: '#b91c1c', _sev: 'critical' })),
+    ...warning.map(a       => ({ ...a, _c: '#b45309', _sev: 'warning'  })),
+    ...minor.map(a         => ({ ...a, _c: '#64748b', _sev: 'minor'    })),
+    ...topPerformers.map(p => ({ ...p, _c: '#16a34a', _sev: 'good'    })),
+  ];
 
-  const summaryText = alerts.length === 0
-    ? `All ${total} KPI${total !== 1 ? 's are' : ' is'} performing within or better than the set benchmarks.`
-    : `${alerts.length} of ${total} KPI${total !== 1 ? 's need' : ' needs'} attention — ${topPerformers.length} within target.`;
-  const summaryColor = alerts.length === 0 ? '#16a34a' : critical.length > 0 ? '#b91c1c' : '#b45309';
+  const summaryOk = alerts.length === 0;
+  const summaryColor = summaryOk ? '#16a34a' : critical.length > 0 ? '#b91c1c' : '#b45309';
+  const summaryText  = summaryOk
+    ? `All ${total} KPI${total !== 1 ? 's are' : ' is'} within benchmark targets.`
+    : `${alerts.length} of ${total} KPI${total !== 1 ? 's need' : ' needs'} attention.`;
+
+  const th = { fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', padding: '0 0.5rem 0.5rem 0.5rem' };
 
   return (
     <div className="chart-card" style={{ marginTop: '1.5rem' }}>
+
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h3 className="card-title" style={{ marginBottom: '0.15rem' }}>Performance Analysis</h3>
           <p style={{ fontSize: '0.73rem', color: 'var(--text-muted)', margin: 0 }}>Benchmark deviation · {selectedSectionName}</p>
@@ -553,35 +533,68 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
               <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.52rem', fontWeight: 800, color: healthColor }}>{healthScore}</span>
             </div>
             <div>
-              <div style={{ fontSize: '0.67rem', fontWeight: 700, color: healthColor, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Health</div>
+              <div style={{ fontSize: '0.67rem', fontWeight: 700, color: healthColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Health</div>
               <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{topPerformers.length}/{total} on target</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '1.25rem' }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 800, fontSize: '1.4rem', color: alerts.length > 0 ? '#b91c1c' : 'var(--text-muted)', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{alerts.length}</div>
+              <div style={{ fontWeight: 800, fontSize: '1.4rem', color: alerts.length > 0 ? '#b91c1c' : 'var(--text-muted)', lineHeight: 1 }}>{alerts.length}</div>
               <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: '2px' }}>Off Target</div>
             </div>
             <div style={{ width: '1px', background: 'var(--border-color)', alignSelf: 'stretch' }} />
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 800, fontSize: '1.4rem', color: topPerformers.length > 0 ? '#16a34a' : 'var(--text-muted)', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{topPerformers.length}</div>
+              <div style={{ fontWeight: 800, fontSize: '1.4rem', color: topPerformers.length > 0 ? '#16a34a' : 'var(--text-muted)', lineHeight: 1 }}>{topPerformers.length}</div>
               <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: '2px' }}>On Target</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Summary + Rows */}
-      <div style={{ background: `${summaryColor}08`, border: `1px solid ${summaryColor}22`, borderRadius: '7px', padding: '0.5rem 0.85rem', marginBottom: '0.5rem' }}>
-        <p style={{ margin: 0, fontSize: '0.78rem', color: summaryColor, fontWeight: 600 }}>{summaryText}</p>
+      {/* Summary banner */}
+      <div style={{ background: `${summaryColor}08`, border: `1px solid ${summaryColor}22`, borderRadius: '6px', padding: '0.45rem 0.85rem', marginBottom: '1rem' }}>
+        <p style={{ margin: 0, fontSize: '0.77rem', color: summaryColor, fontWeight: 600 }}>{summaryText}</p>
       </div>
-      <div>
-        {[...critical.map(a => ({ ...a, _c: '#b91c1c' })),
-          ...warning.map(a  => ({ ...a, _c: '#b45309' })),
-          ...minor.map(a    => ({ ...a, _c: '#64748b' })),
-          ...topPerformers.map(p => ({ ...p, _c: '#16a34a' })),
-        ].map((item, i) => <InsightRow key={i} item={item} accentColor={item._c} />)}
-      </div>
+
+      {/* Scorecard table */}
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+            <th style={{ ...th, textAlign: 'left' }}>KPI</th>
+            <th style={{ ...th, textAlign: 'left' }}>Category</th>
+            <th style={{ ...th, textAlign: 'right' }}>vs Benchmark</th>
+            <th style={{ ...th, textAlign: 'right' }}>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {allRows.map((item, i) => {
+            const sign = item.raw > 0 ? '+' : '\u2212';
+            const statusLabel = item._sev === 'good'
+              ? (item.isOutput ? '\u2191 Above' : '\u2193 Under')
+              : (item.isOutput ? '\u2193 Below' : '\u2191 Over');
+            return (
+              <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <td style={{ padding: '0.6rem 0.5rem', fontWeight: 600, fontSize: '0.83rem', color: 'var(--text-main)' }}>
+                  {item.name}
+                </td>
+                <td style={{ padding: '0.6rem 0.5rem' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--bg-outer)', border: '1px solid var(--border-color)', padding: '1px 7px', borderRadius: '4px' }}>
+                    {item.isOutput ? 'Output' : 'Consumption'}
+                  </span>
+                </td>
+                <td style={{ padding: '0.6rem 0.5rem', textAlign: 'right', fontWeight: 700, fontSize: '0.88rem', color: item._c, fontVariantNumeric: 'tabular-nums' }}>
+                  {sign}{item.pct}%
+                </td>
+                <td style={{ padding: '0.6rem 0.5rem', textAlign: 'right' }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: item._c, background: `${item._c}10`, border: `1px solid ${item._c}28`, padding: '2px 9px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
+                    {statusLabel}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 };
