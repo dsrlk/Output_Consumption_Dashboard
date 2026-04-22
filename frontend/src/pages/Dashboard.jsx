@@ -1229,6 +1229,7 @@ const Dashboard = () => {
                 
                 renderedCards.splice(targetRowEndIndex, 0, panel);
               }
+            }
 
             // ── Append utility KPI cards inline into the same grid ──
             // Skip when Overall (UtilitiesPanel handles it) or Utilities section (categoryData already has them)
