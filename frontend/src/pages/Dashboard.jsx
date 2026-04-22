@@ -1310,9 +1310,17 @@ const Dashboard = () => {
             }
 
             // ── Append utility KPI cards inline into the same grid ──
-            // Skip when Overall (UtilitiesPanel handles it) or Utilities section (categoryData already has them)
-            if (selectedSectionName !== 'Utilities') {
+            // Skip when Utilities or Waste section (they fetch their own data directly into categoryData)
+            if (selectedSectionName !== 'Utilities' && selectedSectionName !== 'Waste') {
               utilityData.forEach(kpi => {
+                // In Overall view, show the main summary utilities: Electricity, Main Meter, and Wastewater Plant
+                if (selectedSection === '0' || selectedSectionName === 'Overall') {
+                  if (kpi.kpi_name !== 'Electricity Usage' && kpi.kpi_name !== 'Water - Main Meter' && kpi.kpi_name !== 'Wastewater Plant') return;
+                } else {
+                  // In department views, hide wastewater as well since it belongs in the Waste tab
+                  if (kpi.kpi_name.toLowerCase().startsWith('wastewater')) return;
+                }
+
                 const isUtilSelected = selectedUtilKpi?.kpi_id === kpi.kpi_id;
                 const hasValue = typeof kpi.value === 'number' && kpi.value > 0;
                 const isZero   = typeof kpi.value === 'number' && kpi.value === 0;
