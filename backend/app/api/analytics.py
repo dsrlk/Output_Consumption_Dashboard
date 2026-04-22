@@ -601,7 +601,7 @@ def get_utilities(
 
     # KPI subset based on view context
     if int(section_id) == 0:
-        kpi_names = ["Electricity Usage", "Water - Main Meter", "Wastewater Plant"]
+        kpi_names = ["Electricity Usage", "Water - Main Meter", "Water - Cafeteria", "Water - Printer 04", "Wastewater Plant"]
     else:
         kpi_names = ["Electricity Usage", "Water - Cafeteria", "Water - Printer 04", "Wastewater Plant"]
 

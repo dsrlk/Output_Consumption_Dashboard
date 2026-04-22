@@ -855,9 +855,14 @@ const Dashboard = () => {
           // Exclude wastewater — it belongs to the Waste tab
           utilData = utilData.filter(k => !k.kpi_name.toLowerCase().startsWith('wastewater'));
           
-          // Sub-filter by category (Electricity / Water)
-          if (selectedCategory !== 'Consumption') {
-            utilData = utilData.filter(k => k.kpi_name.toLowerCase().includes(selectedCategory.toLowerCase()));
+          if (selectedCategory === 'Consumption') {
+            // "All Utilities" summary: only Electricity + Water Main Meter
+            utilData = utilData.filter(k => k.kpi_name === 'Electricity Usage' || k.kpi_name === 'Water - Main Meter');
+          } else if (selectedCategory === 'Electricity') {
+            utilData = utilData.filter(k => k.kpi_name === 'Electricity Usage');
+          } else if (selectedCategory === 'Water') {
+            // Show all water meters (Main, Cafeteria, Printer 04)
+            utilData = utilData.filter(k => k.kpi_name.toLowerCase().includes('water'));
           }
           
           if (!cancelled) {
@@ -884,8 +889,17 @@ const Dashboard = () => {
           const consData = await getCategorySummary(consParams);
           const wasteKpis = consData.filter(k => k.kpi_name.toLowerCase().includes('waste'));
           
+          let combined = [...wastewaterKpis, ...wasteKpis];
+          
+          // Sub-filter
+          if (selectedCategory === 'Wastewater') {
+            combined = combined.filter(k => k.kpi_name.toLowerCase().startsWith('wastewater'));
+          } else if (selectedCategory === 'WastePct') {
+            combined = combined.filter(k => k.kpi_name.toLowerCase().includes('waste') && !k.kpi_name.toLowerCase().startsWith('wastewater'));
+          }
+          
           if (!cancelled) {
-            setCategoryData([...wastewaterKpis, ...wasteKpis]);
+            setCategoryData(combined);
             setDailyMatrix({ dates: [], series: [] });
           }
           return;
@@ -1043,7 +1057,7 @@ const Dashboard = () => {
             />
           </div>
 
-          {!isSales && selectedSectionName !== 'Waste' && (
+          {!isSales && (selectedSectionName !== 'Waste' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Category</span>
               <CustomSelect 
@@ -1066,7 +1080,21 @@ const Dashboard = () => {
                 style={{ width: '160px' }} 
               />
             </div>
-          )}
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Category</span>
+              <CustomSelect 
+                value={selectedCategory} 
+                onChange={val => setSelectedCategory(val)} 
+                options={[
+                  { value: 'Consumption', label: 'All Waste' },
+                  { value: 'Wastewater', label: 'Wastewater' },
+                  { value: 'WastePct', label: 'Waste %' }
+                ]}
+                style={{ width: '160px' }} 
+              />
+            </div>
+          ))}
 
           {selectedSection !== '0' && !isSales && selectedCategory === 'Consumption' && selectedSectionName !== 'Utilities' && selectedSectionName !== 'Waste' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
