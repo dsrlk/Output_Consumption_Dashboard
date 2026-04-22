@@ -790,12 +790,13 @@ const Dashboard = () => {
       try {
         const sData = await getSections();
         // guarantee 'Overall' always appears without a backend restart
-        // Add synthetic entries for Overall and Utilities
+        // Add synthetic entries for Overall, Utilities, and Waste
         const hasUtilities = sData.some(s => s.name === 'Utilities');
         const enhancedData = [
           { id: 0, name: 'Overall' },
           ...sData.filter(s => s.id !== 0),
-          ...(!hasUtilities ? [{ id: 'utilities', name: 'Utilities' }] : [])
+          ...(!hasUtilities ? [{ id: 'utilities', name: 'Utilities' }] : []),
+          { id: 'waste', name: 'Waste' }
         ];
         setSectionsList(enhancedData);
         if (!selectedSection && enhancedData.length > 0) {
@@ -837,10 +838,54 @@ const Dashboard = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const actualCategory = selectedSectionName === 'Utilities' ? 'Utilities' : selectedCategory;
-        // Use section_id 0 (Overall) for the synthetic Utilities section
-        const apiSectionId = selectedSectionName === 'Utilities' ? 0 : selectedSection;
-        const params = { section_id: apiSectionId, category: actualCategory };
+        // ── Utilities section: Electricity + Water only ──
+        if (selectedSectionName === 'Utilities') {
+          const utilParams = { section_id: 0 };
+          if (startDate) utilParams.start_date = startDate;
+          if (endDate)   utilParams.end_date   = endDate;
+          
+          let utilData = await getUtilities(utilParams);
+          // Exclude wastewater — it belongs to the Waste tab
+          utilData = utilData.filter(k => !k.kpi_name.toLowerCase().startsWith('wastewater'));
+          
+          // Sub-filter by category (Electricity / Water)
+          if (selectedCategory !== 'Consumption') {
+            utilData = utilData.filter(k => k.kpi_name.toLowerCase().includes(selectedCategory.toLowerCase()));
+          }
+          
+          if (!cancelled) {
+            setCategoryData(utilData);
+            setDailyMatrix({ dates: [], series: [] });
+          }
+          return;
+        }
+
+        // ── Waste section: Wastewater Plant + Waste % ──
+        if (selectedSectionName === 'Waste') {
+          const utilParams = { section_id: 0 };
+          if (startDate) utilParams.start_date = startDate;
+          if (endDate)   utilParams.end_date   = endDate;
+          
+          // Get Wastewater Plant from utilities API
+          const utilData = await getUtilities(utilParams);
+          const wastewaterKpis = utilData.filter(k => k.kpi_name.toLowerCase().startsWith('wastewater'));
+          
+          // Get Waste % from consumption data
+          const consParams = { section_id: 0, category: 'Consumption' };
+          if (startDate) consParams.start_date = startDate;
+          if (endDate)   consParams.end_date   = endDate;
+          const consData = await getCategorySummary(consParams);
+          const wasteKpis = consData.filter(k => k.kpi_name.toLowerCase().includes('waste'));
+          
+          if (!cancelled) {
+            setCategoryData([...wastewaterKpis, ...wasteKpis]);
+            setDailyMatrix({ dates: [], series: [] });
+          }
+          return;
+        }
+
+        // ── Normal sections ──
+        const params = { section_id: selectedSection, category: selectedCategory };
         if (startDate) params.start_date = startDate;
         if (endDate)   params.end_date   = endDate;
         
@@ -863,12 +908,6 @@ const Dashboard = () => {
         });
         let finalCData = Array.from(uniqueCDataMap.values());
         let finalMData = { ...mData };
-
-        if (selectedSectionName === 'Utilities' && selectedCategory !== 'Consumption') {
-            finalCData = finalCData.filter(k => k.kpi_name.toLowerCase().includes(selectedCategory.toLowerCase()));
-            const allowedIds = new Set(finalCData.map(k => k.kpi_id));
-            finalMData.series = mData.series.filter(s => allowedIds.has(s.kpi_id));
-        }
 
         if (!cancelled) {
           setCategoryData(finalCData);
@@ -997,7 +1036,7 @@ const Dashboard = () => {
             />
           </div>
 
-          {!isSales && (
+          {!isSales && selectedSectionName !== 'Waste' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Category</span>
               <CustomSelect 
@@ -1010,8 +1049,7 @@ const Dashboard = () => {
                       ? [
                           { value: 'Consumption', label: 'All Utilities' },
                           { value: 'Electricity', label: 'Electricity' },
-                          { value: 'Water', label: 'Water' },
-                          { value: 'Wastewater', label: 'Wastewater' }
+                          { value: 'Water', label: 'Water' }
                         ]
                       : [
                           { value: 'Consumption', label: 'Consumption' },
@@ -1023,7 +1061,7 @@ const Dashboard = () => {
             </div>
           )}
 
-          {selectedSection !== '0' && !isSales && selectedCategory === 'Consumption' && (
+          {selectedSection !== '0' && !isSales && selectedCategory === 'Consumption' && selectedSectionName !== 'Utilities' && selectedSectionName !== 'Waste' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>View</span>
               <CustomSelect 
