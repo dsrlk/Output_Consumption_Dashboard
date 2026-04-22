@@ -813,7 +813,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (selectedSection == null || selectedSection === '') return;
-    getStandards({ section_id: selectedSection })
+    const stdSectionId = selectedSectionName === 'Utilities' ? 0 : selectedSection;
+    getStandards({ section_id: stdSectionId })
       .then(data => {
         const map = {}, meta = {};
         data.forEach(s => {
@@ -837,7 +838,9 @@ const Dashboard = () => {
       setLoading(true);
       try {
         const actualCategory = selectedSectionName === 'Utilities' ? 'Utilities' : selectedCategory;
-        const params = { section_id: selectedSection, category: actualCategory };
+        // Use section_id 0 (Overall) for the synthetic Utilities section
+        const apiSectionId = selectedSectionName === 'Utilities' ? 0 : selectedSection;
+        const params = { section_id: apiSectionId, category: actualCategory };
         if (startDate) params.start_date = startDate;
         if (endDate)   params.end_date   = endDate;
         
@@ -894,7 +897,9 @@ const Dashboard = () => {
     if (selectedSection == null || selectedSection === '') return;
     let cancelled = false;
     setUtilityLoading(true);
-    const params = { section_id: selectedSection };
+    // Use section_id 0 (Overall) for the synthetic Utilities section
+    const apiSectionId = selectedSectionName === 'Utilities' ? 0 : selectedSection;
+    const params = { section_id: apiSectionId };
     if (startDate) params.start_date = startDate;
     if (endDate)   params.end_date   = endDate;
     getUtilities(params)
