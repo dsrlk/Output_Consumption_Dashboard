@@ -857,9 +857,9 @@ const Dashboard = () => {
           
           if (selectedCategory === 'Consumption') {
             // "All Utilities" summary: only Electricity + Water Main Meter
-            utilData = utilData.filter(k => k.kpi_name === 'Electricity Usage' || k.kpi_name === 'Water - Main Meter');
+            utilData = utilData.filter(k => k.kpi_name.includes('Electricity') || k.kpi_name.includes('Main Meter'));
           } else if (selectedCategory === 'Electricity') {
-            utilData = utilData.filter(k => k.kpi_name === 'Electricity Usage');
+            utilData = utilData.filter(k => k.kpi_name.includes('Electricity'));
           } else if (selectedCategory === 'Water') {
             // Show all water meters (Main, Cafeteria, Printer 04)
             utilData = utilData.filter(k => k.kpi_name.toLowerCase().includes('water'));
