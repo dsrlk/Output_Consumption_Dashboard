@@ -812,6 +812,13 @@ const Dashboard = () => {
     else if (selectedCategory === 'Orders') { setSelectedCategory('Consumption'); }
   }, [isSales]);
 
+  // Reset category when switching to Utilities or Waste
+  useEffect(() => {
+    if (selectedSectionName === 'Utilities' || selectedSectionName === 'Waste') {
+      setSelectedCategory('Consumption');
+    }
+  }, [selectedSectionName]);
+
   useEffect(() => {
     if (selectedSection == null || selectedSection === '') return;
     const stdSectionId = selectedSectionName === 'Utilities' ? 0 : selectedSection;
