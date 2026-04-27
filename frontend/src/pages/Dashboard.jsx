@@ -812,10 +812,15 @@ const Dashboard = () => {
     else if (selectedCategory === 'Orders') { setSelectedCategory('Consumption'); }
   }, [isSales]);
 
-  // Reset category when switching to Utilities or Waste
+  // Reset category when switching sections to prevent invalid categories from causing "No Data"
   useEffect(() => {
     if (selectedSectionName === 'Utilities' || selectedSectionName === 'Waste') {
       setSelectedCategory('Consumption');
+    } else {
+      // If switching back to a normal department and the category is still a utility/waste specific category
+      if (['Electricity', 'Water', 'Wastewater', 'WastePct'].includes(selectedCategory)) {
+        setSelectedCategory('Consumption');
+      }
     }
   }, [selectedSectionName]);
 
@@ -893,9 +898,9 @@ const Dashboard = () => {
           
           // Sub-filter
           if (selectedCategory === 'Wastewater') {
-            combined = combined.filter(k => k.kpi_name.toLowerCase().startsWith('wastewater'));
+            combined = combined.filter(k => k.kpi_name.toLowerCase().includes('wastewater'));
           } else if (selectedCategory === 'WastePct') {
-            combined = combined.filter(k => k.kpi_name.toLowerCase().includes('waste') && !k.kpi_name.toLowerCase().startsWith('wastewater'));
+            combined = combined.filter(k => k.kpi_name.toLowerCase().includes('waste') && !k.kpi_name.toLowerCase().includes('wastewater'));
           }
           
           if (!cancelled) {
