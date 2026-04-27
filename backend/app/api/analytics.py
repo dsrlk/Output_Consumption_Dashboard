@@ -299,11 +299,34 @@ def get_category_summary(
 
             glue_pre_computed_std = round(total_glue_std, 2) if total_glue_std > 0 else None
 
+        def query_avg(kpi_names, categories=None, sections=None):
+            q = db.query(func.avg(FactKPIValue.value))\
+                .select_from(FactKPIValue)\
+                .join(DimKPI, DimKPI.id == FactKPIValue.kpi_id)\
+                .join(DimDate, DimDate.id == FactKPIValue.date_id)
+            
+            if kpi_names: q = q.filter(DimKPI.name.in_(kpi_names))
+            if categories: q = q.filter(DimKPI.category.in_(categories))
+            
+            if sections:
+                sec_ids = [s.id for s in db.query(DimSection).filter(DimSection.name.in_(sections)).all()]
+                q = q.filter(FactKPIValue.section_id.in_(sec_ids))
+                
+            if start_date: q = q.filter(DimDate.date_val >= start_date)
+            if end_date: q = q.filter(DimDate.date_val <= end_date)
+            
+            val = q.scalar()
+            return float(val) if val else 0.0
+
+        waste_kpi = db.query(DimKPI).filter(DimKPI.name == "Waste %").first()
+        waste_kpi_id = waste_kpi.id if waste_kpi else -4
+        waste_val = round(query_avg(["Waste %"]), 2) if waste_kpi else "N/A"
+
         return [
             {"kpi_id": -1, "kpi_name": "Corrugator MT", "unit": "MT", "value": corr_mt, "aggregation": "sum", "working_days": corr_wd, "total_weight_kg": corr_kg},
             {"kpi_id": -2, "kpi_name": "Furnace Oil", "unit": "Liters", "value": round(fo_l, 2), "aggregation": "sum", "working_days": corr_wd, "total_weight_kg": corr_kg},
             {"kpi_id": -3, "kpi_name": "Glue", "unit": "KG", "value": round(glue_kg, 2), "aggregation": "sum", "working_days": None, "total_weight_kg": corr_kg, "pre_computed_period_std": glue_pre_computed_std},
-            {"kpi_id": -4, "kpi_name": "Waste %", "unit": "%", "value": "N/A", "aggregation": "sum", "working_days": factory_wd, "total_weight_kg": corr_kg},
+            {"kpi_id": waste_kpi_id, "kpi_name": "Waste %", "unit": "%", "value": waste_val, "aggregation": "avg", "working_days": factory_wd, "total_weight_kg": corr_kg},
         ]
 
 

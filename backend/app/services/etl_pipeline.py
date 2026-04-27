@@ -124,6 +124,95 @@ def process_excel_files(db: Session):
             
         filepath = os.path.join(INPUT_DIR, filename)
         
+        if "waste" in filename.lower():
+            try:
+                xls = pd.ExcelFile(filepath)
+                file_record = get_or_create(db, DimSourceFile, filename=filename, sheet_name="Waste")
+                
+                overall_sec = get_or_create(db, DimSection, name="Overall")
+                waste_kpi = get_or_create(db, DimKPI, name="Waste %", unit="%")
+                if waste_kpi.category != "Consumption":
+                    waste_kpi.category = "Consumption"
+                    db.commit()
+                
+                # Extract month/year from filename (e.g. "Waste Report 04.2026.xlsx")
+                file_month, file_year = None, None
+                import re
+                m_file = re.search(r'(\d{2})\.(\d{4})', filename)
+                if m_file:
+                    file_month = int(m_file.group(1))
+                    file_year = int(m_file.group(2))
+                
+                for sheet_name in xls.sheet_names:
+                    df = pd.read_excel(filepath, sheet_name=sheet_name, header=None)
+                    
+                    sheet_month, sheet_year = file_month, file_year
+                    # If not in filename, try sheet name "01.04.2026"
+                    if not sheet_year:
+                        m_sheet = re.search(r'\d{2}\.(\d{2})\.(\d{4})', str(sheet_name))
+                        if m_sheet:
+                            sheet_month = int(m_sheet.group(1))
+                            sheet_year = int(m_sheet.group(2))
+                    
+                    if not sheet_year:
+                        continue
+                        
+                    for row_idx in range(3, len(df)):
+                        row = df.iloc[row_idx]
+                        if len(row) < 29:
+                            continue
+                            
+                        date_raw = row[0]
+                        try:
+                            day = int(date_raw)
+                            if 1 <= day <= 31:
+                                from datetime import date
+                                d_val = date(sheet_year, sheet_month, day)
+                                dim_date = get_or_create(db, DimDate, date_val=d_val)
+                                dim_date.year = sheet_year
+                                dim_date.month = sheet_month
+                                dim_date.day = day
+                                dim_date.day_of_week = d_val.strftime('%A')
+                                dim_date.is_holiday = 0
+                                db.commit()
+                                
+                                val_raw = row[28] # Column AC (index 28)
+                                if pd.notna(val_raw):
+                                    val = None
+                                    if isinstance(val_raw, (int, float)):
+                                        val = float(val_raw)
+                                        # Excel stores percentages as decimals (4.49% -> 0.0449)
+                                        if val > 0 and val < 1.0:
+                                            val = val * 100
+                                    elif isinstance(val_raw, str):
+                                        val_str = str(val_raw).replace('%', '').strip()
+                                        try:
+                                            val = float(val_str)
+                                        except:
+                                            pass
+                                            
+                                    if val is not None and val > 0:
+                                        db.query(FactKPIValue).filter_by(
+                                            date_id=dim_date.id,
+                                            section_id=overall_sec.id,
+                                            kpi_id=waste_kpi.id
+                                        ).delete()
+                                        
+                                        db.add(FactKPIValue(
+                                            date_id=dim_date.id,
+                                            section_id=overall_sec.id,
+                                            kpi_id=waste_kpi.id,
+                                            file_id=file_record.id,
+                                            value=val
+                                        ))
+                                        total_records += 1
+                        except Exception as e:
+                            pass
+                db.commit()
+            except Exception as e:
+                errors.append(f"Waste parse failed for {filename}: {str(e)}")
+            continue
+            
         try:
             xls = pd.ExcelFile(filepath)
             
