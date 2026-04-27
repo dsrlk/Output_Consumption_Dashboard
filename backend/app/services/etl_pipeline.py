@@ -159,7 +159,7 @@ def process_excel_files(db: Session):
                         
                     for row_idx in range(3, len(df)):
                         row = df.iloc[row_idx]
-                        if len(row) < 29:
+                        if len(row) < 26:
                             continue
                             
                         date_raw = row[0]
@@ -176,7 +176,7 @@ def process_excel_files(db: Session):
                                 dim_date.is_holiday = 0
                                 db.commit()
                                 
-                                val_raw = row[28] # Column AC (index 28)
+                                val_raw = row[25] # Column Z (index 25)
                                 if pd.notna(val_raw):
                                     val = None
                                     if isinstance(val_raw, (int, float)):
