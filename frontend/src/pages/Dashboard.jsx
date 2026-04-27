@@ -1297,7 +1297,7 @@ const Dashboard = () => {
                       kpi={selectedKpi}
                       standard={standards[selectedKpi.kpi_id] ?? null}
                       standardMeta={standardsMeta[selectedKpi.kpi_id] ?? null}
-                      selectedSection={selectedSection}
+                      selectedSection={selectedSectionName === 'Utilities' || selectedSectionName === 'Waste' ? 0 : selectedSection}
                       startDate={startDate}
                       endDate={endDate}
                       onClose={() => setSelectedKpi(null)}
