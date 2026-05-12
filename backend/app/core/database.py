@@ -10,7 +10,9 @@ if DATABASE_URL:
     # Production: PostgreSQL (Railway/Render sets this automatically)
     # Railway uses postgres:// but SQLAlchemy needs postgresql://
     if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+pg8000://", 1)
+    elif DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
     SQLALCHEMY_DATABASE_URL = DATABASE_URL
     engine = create_engine(SQLALCHEMY_DATABASE_URL)
 else:
