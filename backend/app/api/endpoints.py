@@ -34,25 +34,15 @@ async def upload_and_refresh(
     if not file.filename.endswith(('.xls', '.xlsx')):
         raise HTTPException(status_code=400, detail="Only .xls and .xlsx files are accepted.")
 
-    os.makedirs(INPUT_DIR, exist_ok=True)
-    dest = os.path.join(INPUT_DIR, file.filename)
-
-    # Save uploaded file to disk
-    with open(dest, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    logger.info(f"Uploaded file saved: {dest}")
-
-    try:
-        log_record = process_excel_files(db)
-        return RefreshResponse(
-            status=log_record.status,
-            message=log_record.message,
-            records_processed=log_record.records_processed
-        )
-    except Exception as e:
-        logger.error(f"ETL failed after upload: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    # TEMPORARY TEST: Just return success
+    return RefreshResponse(
+        status="Success",
+        message="Connection Test Successful! Processing is temporarily disabled.",
+        records_processed=0
+    )
+    
+    # os.makedirs(INPUT_DIR, exist_ok=True)
+    # ... (rest of the code commented out)
 
 # ── Protected: manual rescan (no file upload) ─────────────────────────────────
 @router.post("/refresh", response_model=RefreshResponse)
