@@ -317,6 +317,7 @@ def process_excel_files(db: Session):
                                     db.commit()
                             
                 # Start data rows from row 8 (index 7)
+                facts_to_upsert = []
                 for row_idx in range(7, len(df)):
                     row = df.iloc[row_idx]
                     
@@ -324,18 +325,16 @@ def process_excel_files(db: Session):
                     date_val_raw = row[0]
                     
                     if pd.isna(date_val_raw):
-                        # Empty date cell, likely end of data or spacing
                         continue
                         
                     try:
                         date_val = pd.to_datetime(date_val_raw).date()
                     except:
-                        continue # If it's a "Total" string or garbage
+                        continue
                     
                     # Determine Holiday Status
                     c_weight = safe_float(row[2]) if 2 < len(row) else 0
                     f_weight = safe_float(row[25]) if 25 < len(row) else 0
-                    
                     is_holiday = 1 if (c_weight == 0 and f_weight == 0) else 0
                     
                     dim_date = db.query(DimDate).filter_by(date_val=date_val).first()
@@ -349,55 +348,37 @@ def process_excel_files(db: Session):
                             is_holiday=is_holiday
                         )
                         db.add(dim_date)
-                        db.commit()
-                        db.refresh(dim_date)
-                    elif dim_date.is_holiday != is_holiday:
-                        # Update holiday status if we have new data showing it differently
-                        # Treat non-holiday (0) as dominating over holiday (1) if conflicts exist
-                        if is_holiday == 0:
-                            dim_date.is_holiday = 0
-                            db.commit()
+                        db.flush()  # Get ID without committing
+                    elif dim_date.is_holiday != is_holiday and is_holiday == 0:
+                        dim_date.is_holiday = 0
                     
-                    # Extract Data
+                    # Collect all facts for this row
                     for sec, kpi, col_idx, unit in KPI_MAP:
                         if col_idx < len(row):
                             val = safe_float(row[col_idx])
-                            
-                            # If value is a strictly decimal percentage from excel (e.g., 0.73), convert to 73. 
-                            # If it's already an integer format like 81.36, leave it be.
                             if unit == "%" and val <= 5.0:
                                 val = val * 100
                             
-                            # Fetch Dimension IDs from cache
                             sec_id = dim_cache[sec].id
                             kpi_id = dim_cache[f"{sec}_{kpi}"].id
-                            
-                            existing_fact = db.query(FactKPIValue).filter_by(
-                                date_id=dim_date.id,
-                                section_id=sec_id,
-                                kpi_id=kpi_id,
-                                file_id=file_record.id
-                            ).first()
-                            
-                            if existing_fact:
-                                existing_fact.value = val
-                            else:
-                                fact = FactKPIValue(
-                                    date_id=dim_date.id,
-                                    section_id=sec_id,
-                                    kpi_id=kpi_id,
-                                    file_id=file_record.id,
-                                    value=val
-                                )
-                                db.add(fact)
-                                
+                            facts_to_upsert.append({
+                                "date_id": dim_date.id,
+                                "section_id": sec_id,
+                                "kpi_id": kpi_id,
+                                "file_id": file_record.id,
+                                "value": val
+                            })
                             total_records += 1
-                            
-                    # Commit per row to prevent huge RAM spikes and allow easier trace
+
+                # Bulk delete existing facts for this file then bulk insert
+                if facts_to_upsert:
+                    db.query(FactKPIValue).filter_by(file_id=file_record.id).delete()
+                    db.bulk_insert_mappings(FactKPIValue, facts_to_upsert)
                     db.commit()
+                    logger.info(f"Committed {len(facts_to_upsert)} records for sheet {sheet_name}")
                             
         except Exception as e:
-            errors.append(f"Error processing {filename}: {str(e)}")
+            errors.append(f"Error processing {filename}: {str(e)}") 
             logger.error(f"Error: {e}")
             
     # Log the refresh result
