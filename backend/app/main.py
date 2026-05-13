@@ -4,7 +4,7 @@ from app.api import endpoints, analytics
 from app.core.database import engine, Base
 
 # Create all database tables
-# Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Consumption Report API",
