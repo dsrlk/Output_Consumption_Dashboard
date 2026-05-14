@@ -128,6 +128,98 @@ export const processExcelFile = async (file, onProgress) => {
         
         let totalRecordsProcessed = 0;
         
+        const isWasteFile = file.name.toLowerCase().includes('waste');
+
+        if (isWasteFile) {
+          let fileMonth = null;
+          let fileYear = null;
+          const mFile = file.name.match(/(\d{2})\.(\d{4})/);
+          if (mFile) {
+            fileMonth = parseInt(mFile[1], 10);
+            fileYear = parseInt(mFile[2], 10);
+          }
+
+          let currentBatch = writeBatch(db);
+          let opCount = 0;
+          const batches = [];
+
+          for (const sheetName of workbook.SheetNames) {
+            const worksheet = workbook.Sheets[sheetName];
+            const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+            
+            let sheetMonth = fileMonth;
+            let sheetYear = fileYear;
+
+            if (!sheetYear) {
+              const mSheet = sheetName.match(/\d{2}\.(\d{2})\.(\d{4})/);
+              if (mSheet) {
+                sheetMonth = parseInt(mSheet[1], 10);
+                sheetYear = parseInt(mSheet[2], 10);
+              }
+            }
+
+            if (!sheetYear || rawData.length < 4) continue;
+            
+            onProgress && onProgress(`Processing Waste Data in ${sheetName}...`);
+
+            for (let rowIdx = 3; rowIdx < rawData.length; rowIdx++) {
+              const row = rawData[rowIdx];
+              if (row.length < 26) continue;
+              
+              const dateRaw = row[0];
+              const day = parseInt(dateRaw, 10);
+              if (isNaN(day) || day < 1 || day > 31) continue;
+
+              const valRaw = row[25];
+              if (valRaw === null || valRaw === undefined) continue;
+
+              let val = parseFloat(String(valRaw).replace('%', '').trim());
+              if (isNaN(val) || val <= 0) continue;
+
+              if (val > 0 && val < 1.0 && String(valRaw).indexOf('%') === -1) {
+                  val = val * 100;
+              }
+
+              const dateStr = `${sheetYear}-${String(sheetMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const docId = `${dateStr}_Overall`;
+              const docRef = doc(collection(db, 'daily_records'), docId);
+              
+              const payload = {
+                date: dateStr,
+                year: sheetYear,
+                month: sheetMonth,
+                day: day,
+                section: 'Overall',
+                is_holiday: false,
+                metrics: {
+                    'Waste %': { value: val, unit: '%', category: 'Consumption', capacity: null }
+                }
+              };
+              
+              // Use merge:true so we don't accidentally overwrite if something else is saved in Overall
+              currentBatch.set(docRef, payload, { merge: true });
+              opCount++;
+              totalRecordsProcessed++;
+              
+              if (opCount >= 450) {
+                batches.push(currentBatch);
+                currentBatch = writeBatch(db);
+                opCount = 0;
+              }
+            }
+          }
+          
+          if (opCount > 0) batches.push(currentBatch);
+          for (let b of batches) {
+            await b.commit();
+          }
+          
+          resolve({ recordsProcessed: totalRecordsProcessed, status: 'Success' });
+          return;
+        }
+
+        // --- standard production file processing below ---
+        
         // Month names mapping
         const monthMap = { "JANUARY":1,"FEBRUARY":2,"MARCH":3,"APRIL":4, "MAY":5,"JUNE":6,"JULY":7,"AUGUST":8, "SEPTEMBER":9,"OCTOBER":10,"NOVEMBER":11,"DECEMBER":12 };
 
