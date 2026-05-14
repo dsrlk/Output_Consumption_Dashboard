@@ -77,7 +77,7 @@ const KPI_MAP = [
   ["Utilities", "Water - Main Meter", 69, "L"],
   ["Utilities", "Water - Cafeteria",  70, "L"],
   ["Utilities", "Water - Printer 04", 71, "L"],
-  ["Utilities", "Wastewater Plant",   72, "L"]
+  ["Waste",     "Wastewater Plant",   72, "L"]
 ];
 
 const WORKING_DAYS_CELLS = {
@@ -91,7 +91,8 @@ const WORKING_DAYS_CELLS = {
 function classifyKpi(name) {
   const n = name.toLowerCase();
   if (n === "orders brought in") return "Orders";
-  const utilities = ["electricity usage", "water - main meter", "water - cafeteria", "water - printer 04", "wastewater plant"];
+  if (n === "wastewater plant") return "Utilities"; // category stays Utilities even though section is Waste
+  const utilities = ["electricity usage", "water - main meter", "water - cafeteria", "water - printer 04"];
   if (utilities.includes(n)) return "Utilities";
   const consumptions = ["no of workers", "hours worked", "furnace oil consumed", "corn starch", "caustic soda", "borax", "ink", "glue", "bundling rope", "stitching wire", "strapping tape", "laminating glue", "chemifix", "spray chemifix"];
   if (consumptions.includes(n)) return "Consumption";

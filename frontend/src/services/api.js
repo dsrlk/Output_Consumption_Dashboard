@@ -475,9 +475,14 @@ export const getUtilities = async (params = {}) => {
     const docs = await getDocsForDateRange(params.start_date, params.end_date, '0');
     const agg = {};
     docs.forEach(d => {
-        if (d.section === 'Utilities') {
+        // Utilities section: Electricity + Water meters
+        // Waste section: Wastewater Plant
+        if (d.section === 'Utilities' || d.section === 'Waste') {
             Object.keys(d.metrics).forEach(kpi => {
-                if (!agg[kpi]) agg[kpi] = { kpi_name: kpi, value: 0, unit: d.metrics[kpi].unit, kpi_id: KPI_LIST.find(k=>k.name===kpi)?.id };
+                const kpiInfo = KPI_LIST.find(k => k.name === kpi);
+                // Only aggregate items classified as Utilities category
+                if (!kpiInfo || kpiInfo.category !== 'Utilities') return;
+                if (!agg[kpi]) agg[kpi] = { kpi_name: kpi, value: 0, unit: d.metrics[kpi].unit, kpi_id: kpiInfo.id };
                 agg[kpi].value += d.metrics[kpi].value;
             });
         }

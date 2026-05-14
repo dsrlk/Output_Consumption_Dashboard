@@ -880,16 +880,15 @@ const Dashboard = () => {
           if (startDate) utilParams.start_date = startDate;
           if (endDate)   utilParams.end_date   = endDate;
           
-          // Get Wastewater Plant from utilities API
+          // Get Wastewater Plant from utilities (now reads from 'Waste' section docs)
           const utilData = await getUtilities(utilParams);
-          const wastewaterKpis = utilData.filter(k => k.kpi_name.toLowerCase().startsWith('wastewater'));
+          const wastewaterKpis = utilData.filter(k => k.kpi_name.toLowerCase().includes('wastewater'));
           
-          // Get Waste % from consumption data
-          const consParams = { section_id: 0, category: 'Consumption' };
-          if (startDate) consParams.start_date = startDate;
-          if (endDate)   consParams.end_date   = endDate;
-          const consData = await getCategorySummary(consParams);
-          const wasteKpis = consData.filter(k => k.kpi_name.toLowerCase().includes('waste'));
+          // Get Waste % from section_id 8 specifically
+          const wasteParams = { section_id: '8', category: 'Consumption' };
+          if (startDate) wasteParams.start_date = startDate;
+          if (endDate)   wasteParams.end_date   = endDate;
+          const wasteKpis = await getCategorySummary(wasteParams);
           
           let combined = [...wastewaterKpis, ...wasteKpis];
           
@@ -897,7 +896,7 @@ const Dashboard = () => {
           if (selectedCategory === 'Wastewater') {
             combined = combined.filter(k => k.kpi_name.toLowerCase().includes('wastewater'));
           } else if (selectedCategory === 'WastePct') {
-            combined = combined.filter(k => k.kpi_name.toLowerCase().includes('waste') && !k.kpi_name.toLowerCase().includes('wastewater'));
+            combined = combined.filter(k => k.kpi_name.toLowerCase().includes('waste %'));
           }
           
           if (!cancelled) {
