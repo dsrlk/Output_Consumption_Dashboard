@@ -1022,11 +1022,21 @@ const Dashboard = () => {
     }
 
     // --- Per-Day standard (scaled by actual working days) ---
+    // --- Per-Month standard (used as a direct period total) ---
     if (isTonKpi) return null;
 
-    const periodStd = (!isPctKpi && workingDays && periodType === 'day')
-      ? std * workingDays
-      : std;
+    let periodStd;
+    if (isPctKpi) {
+      // Percentage KPI: compare average directly to the standard
+      periodStd = std;
+    } else if (periodType === 'month') {
+      // Monthly standard is already a total — compare directly to period value
+      periodStd = std;
+    } else if (workingDays && periodType === 'day') {
+      periodStd = std * workingDays;
+    } else {
+      periodStd = std;
+    }
 
     const pct    = ((kpi.value - periodStd) / periodStd) * 100;
     const isGood = isOutput ? pct >= 0 : pct <= 0;

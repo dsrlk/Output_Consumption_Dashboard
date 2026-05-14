@@ -182,7 +182,7 @@ export const processExcelFile = async (file, onProgress) => {
               }
 
               const dateStr = `${sheetYear}-${String(sheetMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const docId = `${dateStr}_Overall`;
+              const docId = `${dateStr}_Waste`;
               const docRef = doc(collection(db, 'daily_records'), docId);
               
               const payload = {
@@ -190,14 +190,13 @@ export const processExcelFile = async (file, onProgress) => {
                 year: sheetYear,
                 month: sheetMonth,
                 day: day,
-                section: 'Overall',
+                section: 'Waste',
                 is_holiday: false,
                 metrics: {
                     'Waste %': { value: val, unit: '%', category: 'Consumption', capacity: null }
                 }
               };
               
-              // Use merge:true so we don't accidentally overwrite if something else is saved in Overall
               currentBatch.set(docRef, payload, { merge: true });
               opCount++;
               totalRecordsProcessed++;

@@ -41,7 +41,7 @@ const KpiRow = ({ kpi, sectionId, existingStandards, draftValues, draftPeriods, 
           <CustomSelect
             value={period}
             onChange={val => setDraftPeriods(prev => ({ ...prev, [kpi.id]: val }))}
-            options={[{ value: 'day', label: 'Per Day' }, { value: 'ton', label: 'Per Ton' }]}
+            options={[{ value: 'day', label: 'Per Day' }, { value: 'month', label: 'Per Month' }, { value: 'ton', label: 'Per Ton' }]}
             style={{ width: '115px' }}
           />
         </td>
@@ -58,7 +58,7 @@ const KpiRow = ({ kpi, sectionId, existingStandards, draftValues, draftPeriods, 
           {existingVal != null
             ? <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               {existingVal.toLocaleString(undefined, { maximumFractionDigits: 3 })}
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>/ {existing.period_type === 'ton' ? 'ton' : 'day'}</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>/ {existing.period_type === 'ton' ? 'ton' : existing.period_type === 'month' ? 'month' : 'day'}</span>
             </span>
             : <span style={{ color: 'var(--text-muted)' }}>Not set</span>}
         </td>
@@ -168,7 +168,7 @@ const KpiRow = ({ kpi, sectionId, existingStandards, draftValues, draftPeriods, 
                             )}
                           </div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '1px' }}>
-                            {h.period_type === 'ton' ? 'Per Ton' : 'Per Day'}
+                            {h.period_type === 'ton' ? 'Per Ton' : h.period_type === 'month' ? 'Per Month' : 'Per Day'}
                           </div>
                         </div>
                         <div style={{
@@ -323,11 +323,18 @@ const DataHub = () => {
 
   // Reusable KPI row — defined at top level of file to avoid remount on re-render
 
-  const isUtilitiesSection = stdSection && sectionsList.find(s => s.id.toString() === stdSection)?.name === 'Utilities';
+  const currentSectionName = sectionsList.find(s => s.id.toString() === stdSection)?.name;
+  const isUtilitiesSection = currentSectionName === 'Utilities';
+  const isWasteSection = currentSectionName === 'Waste';
 
   const GROUPS = isUtilitiesSection
     ? [
         { cat: 'Utilities', accent: 'var(--primary)', bg: 'color-mix(in srgb, var(--primary) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--primary) 8%, transparent)', desc: 'Electricity, Water, and Wastewater metrics' }
+      ]
+    : isWasteSection
+    ? [
+        { cat: 'Consumption', accent: 'var(--primary)', bg: 'color-mix(in srgb, var(--primary) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--primary) 8%, transparent)', desc: 'Waste percentage metrics' },
+        { cat: 'Utilities', accent: '#64748b', bg: 'color-mix(in srgb, #64748b 4%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, #64748b 10%, transparent)', desc: 'Wastewater volume metrics' },
       ]
     : [
         { cat: 'Consumption', accent: 'var(--primary)', bg: 'color-mix(in srgb, var(--primary) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--primary) 8%, transparent)', desc: 'Materials & resources consumed during production' },
