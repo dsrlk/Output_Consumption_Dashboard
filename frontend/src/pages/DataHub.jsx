@@ -244,10 +244,11 @@ const DataHub = () => {
   const loadSections = async () => {
     try {
       const sData = await getSections();
-      setSectionsList(sData);
-      if (sData.length > 0) {
-        const corr = sData.find(s => s.name === 'Corrugator') || sData[0];
-        setStdSection(corr.id.toString());
+      // Include Overall (id=0) at top for board-level benchmark configuration
+      const withOverall = [{ id: 0, name: 'Overall' }, ...sData.filter(s => s.name !== 'Sales')];
+      setSectionsList(withOverall);
+      if (withOverall.length > 0) {
+        setStdSection('0'); // default to Overall so board sees it first
       }
     } catch (e) { console.error(e); }
   };
@@ -326,6 +327,7 @@ const DataHub = () => {
   const currentSectionName = sectionsList.find(s => s.id.toString() === stdSection)?.name;
   const isUtilitiesSection = currentSectionName === 'Utilities';
   const isWasteSection = currentSectionName === 'Waste';
+  const isOverallSection = currentSectionName === 'Overall';
 
   const GROUPS = isUtilitiesSection
     ? [
@@ -335,6 +337,11 @@ const DataHub = () => {
     ? [
         { cat: 'Consumption', accent: 'var(--primary)', bg: 'color-mix(in srgb, var(--primary) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--primary) 8%, transparent)', desc: 'Waste percentage metrics' },
         { cat: 'Utilities', accent: '#64748b', bg: 'color-mix(in srgb, #64748b 4%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, #64748b 10%, transparent)', desc: 'Wastewater volume metrics' },
+      ]
+    : isOverallSection
+    ? [
+        { cat: 'Output', accent: 'var(--text-main)', bg: 'color-mix(in srgb, var(--text-main) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--text-main) 8%, transparent)', desc: 'Total factory output — Corrugator production target' },
+        { cat: 'Consumption', accent: 'var(--primary)', bg: 'color-mix(in srgb, var(--primary) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--primary) 8%, transparent)', desc: 'Board-level consumption KPIs — Furnace Oil, Glue, Waste %' },
       ]
     : [
         { cat: 'Consumption', accent: 'var(--primary)', bg: 'color-mix(in srgb, var(--primary) 3%, transparent)', text: 'var(--text-main)', pill: 'color-mix(in srgb, var(--primary) 8%, transparent)', desc: 'Materials & resources consumed during production' },

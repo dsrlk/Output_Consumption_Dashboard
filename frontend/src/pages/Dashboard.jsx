@@ -990,7 +990,8 @@ const Dashboard = () => {
 
     const periodType  = meta?.period_type ?? 'day';
     const workingDays = kpi.working_days ?? null;
-    const isPctKpi    = kpi.aggregation === 'avg_working_days';
+    // 'avg_working_days' = percentage KPI in section view, 'avg' = Overall Waste % summary
+    const isPctKpi    = kpi.aggregation === 'avg_working_days' || kpi.aggregation === 'avg';
     const isTonKpi    = kpi.aggregation === 'per_ton';
 
     // --- Per-Ton standard ---

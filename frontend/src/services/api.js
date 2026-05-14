@@ -118,12 +118,23 @@ const KPI_LIST = [
   { id: 73, section_id: 8, name: "Waste %", category: "Consumption", unit: "%" }
 ];
 
+// Overall/Board-level KPI list — these map to the synthetic kpi_ids (-1,-2,-3,-4)
+// returned by getCategorySummary for section_id=0
+const OVERALL_KPI_LIST = [
+  { id: -1, section_id: 0, name: "Corrugator MT", category: "Output", unit: "MT" },
+  { id: -2, section_id: 0, name: "Furnace Oil", category: "Consumption", unit: "Liters" },
+  { id: -3, section_id: 0, name: "Glue", category: "Consumption", unit: "KG" },
+  { id: -4, section_id: 0, name: "Waste %", category: "Consumption", unit: "%" },
+];
+
 // Filters
 export const getSections = async () => SECTIONS;
 
 export const getKPIs = async (params = {}) => {
-    if (params.section_id) {
-        return KPI_LIST.filter(k => k.section_id === parseInt(params.section_id));
+    const sid = parseInt(params.section_id);
+    if (params.section_id !== undefined && !isNaN(sid)) {
+        if (sid === 0) return OVERALL_KPI_LIST;
+        return KPI_LIST.filter(k => k.section_id === sid);
     }
     return KPI_LIST;
 }
@@ -137,11 +148,14 @@ export const getStandards = async (params) => {
 
 export const upsertStandard = async (params) => {
     const stdId = `${params.section_id}_${params.kpi_id}`;
+    // Look up category from KPI lists so getDeviation knows Output vs Consumption
+    const kpiInfo = [...KPI_LIST, ...OVERALL_KPI_LIST].find(k => k.id === parseInt(params.kpi_id));
     const payload = {
         section_id: parseInt(params.section_id),
         kpi_id: parseInt(params.kpi_id),
         standard_value: parseFloat(params.standard_value),
         period_type: params.period_type,
+        category: kpiInfo?.category || null,
         saved_at: new Date().toISOString()
     };
     await setDoc(doc(db, 'standards', stdId), payload);
