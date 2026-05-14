@@ -431,6 +431,7 @@ export const getTrends = async (kpiId, params) => {
         if (kpiId === -1) { kpiNames = ["Weight"]; factor = 0.001; targetSection = "Corrugator"; }
         else if (kpiId === -2) { kpiNames = ["Furnace Oil Consumed"]; }
         else if (kpiId === -3) { kpiNames = ["Glue", "Laminating Glue"]; }
+        else if (kpiId === -4) { kpiNames = ["Waste %"]; targetSection = null; } // Waste %: search all sections
     } else {
         const kpiInfo = KPI_LIST.find(k => k.id === parseInt(kpiId));
         if (kpiInfo) kpiNames = [kpiInfo.name];
@@ -439,10 +440,18 @@ export const getTrends = async (kpiId, params) => {
         }
     }
     
+    // For Waste %, we need to pull from both new 'Waste' section and legacy 'Overall' section docs
+    const isWastePctQuery = kpiNames.includes("Waste %") && (kpiId === -4 || kpiId === 73);
+    
     const totalsByDate = {};
     docs.forEach(d => {
         if (d.is_holiday) return;
-        if (targetSection && d.section !== targetSection) return;
+        // For Waste %, allow both 'Waste' (new) and 'Overall' (legacy) section docs
+        if (isWastePctQuery) {
+            if (d.section !== 'Waste' && d.section !== 'Overall') return;
+        } else {
+            if (targetSection && d.section !== targetSection) return;
+        }
         
         let dailySum = 0;
         kpiNames.forEach(name => {
@@ -548,9 +557,15 @@ export const getCategorySummary = async (params) => {
     let total_weight_kg = 0;
     let wdSet = new Set();
     
+    const isWasteSection = targetSectionName === 'Waste';
+    
     docs.forEach(d => {
         if (d.is_holiday) return;
-        if (d.section !== targetSectionName) return;
+        // Waste section: accept both 'Waste' (new) and 'Overall' (legacy) docs for backward-compatibility
+        const sectionMatch = isWasteSection
+            ? (d.section === 'Waste' || d.section === 'Overall')
+            : d.section === targetSectionName;
+        if (!sectionMatch) return;
         
         let dailyTotalWeight = 0;
         Object.keys(d.metrics).forEach(k => {
