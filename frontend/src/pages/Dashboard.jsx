@@ -791,12 +791,9 @@ const Dashboard = () => {
         const sData = await getSections();
         // guarantee 'Overall' always appears without a backend restart
         // Add synthetic entries for Overall, Utilities, and Waste
-        const hasUtilities = sData.some(s => s.name === 'Utilities');
         const enhancedData = [
           { id: 0, name: 'Overall' },
-          ...sData.filter(s => s.id !== 0),
-          ...(!hasUtilities ? [{ id: 'utilities', name: 'Utilities' }] : []),
-          { id: 'waste', name: 'Waste' }
+          ...sData.filter(s => s.id !== 0)
         ];
         setSectionsList(enhancedData);
         if (!selectedSection && enhancedData.length > 0) {
@@ -826,7 +823,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (selectedSection == null || selectedSection === '') return;
-    const stdSectionId = selectedSectionName === 'Utilities' ? 0 : selectedSection;
+    const stdSectionId = selectedSection; // use exact ID directly from the DB
     getStandards({ section_id: stdSectionId })
       .then(data => {
         const map = {}, meta = {};

@@ -35,7 +35,6 @@ export const getStatus = async () => {
     return { status: "Success", records_processed: 0, last_refresh: new Date().toISOString() };
 }
 
-// Hardcoded Master Data
 const SECTIONS = [
   { id: 1, name: "Sales" },
   { id: 2, name: "Corrugator" },
@@ -43,7 +42,8 @@ const SECTIONS = [
   { id: 4, name: "Finishing A" },
   { id: 5, name: "Finishing B" },
   { id: 6, name: "Factory 2" },
-  { id: 7, name: "Utilities" }
+  { id: 7, name: "Utilities" },
+  { id: 8, name: "Waste" }
 ];
 
 const KPI_LIST = [
@@ -114,7 +114,8 @@ const KPI_LIST = [
   { id: 69, section_id: 7, name: "Water - Main Meter", category: "Utilities", unit: "L" },
   { id: 70, section_id: 7, name: "Water - Cafeteria", category: "Utilities", unit: "L" },
   { id: 71, section_id: 7, name: "Water - Printer 04", category: "Utilities", unit: "L" },
-  { id: 72, section_id: 7, name: "Wastewater Plant", category: "Utilities", unit: "L" }
+  { id: 72, section_id: 8, name: "Wastewater Plant", category: "Utilities", unit: "L" },
+  { id: 73, section_id: 8, name: "Waste %", category: "Consumption", unit: "%" }
 ];
 
 // Filters
