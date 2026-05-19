@@ -207,24 +207,31 @@ export const getRecords = async (params) => {
 let docsCache = { key: null, promise: null, time: 0 };
 
 const getDocsForDateRange = async (start_date, end_date, section_id) => {
-    const key = `${start_date}_${end_date}_${section_id}`;
-    // Cache valid for 5 seconds to catch concurrent parallel requests from components
+    // We ALWAYS fetch all sections for the date range from Firestore to avoid requiring 
+    // composite indexes (range on date + equality on section). Then we filter client-side.
+    // This also maximizes cache hits across concurrent component loads.
+    const key = `${start_date}_${end_date}`;
+    let allDocsPromise;
     if (docsCache.key === key && Date.now() - docsCache.time < 5000) {
-        return await docsCache.promise;
+        allDocsPromise = docsCache.promise;
+    } else {
+        const fetchPromise = (async () => {
+            const q = query(collection(db, 'daily_records'), where("date", ">=", start_date), where("date", "<=", end_date));
+            const snap = await getDocs(q);
+            return snap.docs.map(d => d.data());
+        })();
+        docsCache = { key, promise: fetchPromise, time: Date.now() };
+        allDocsPromise = fetchPromise;
     }
 
-    const fetchPromise = (async () => {
-        let q = query(collection(db, 'daily_records'), where("date", ">=", start_date), where("date", "<=", end_date));
-        if (section_id && section_id !== '0') {
-            const secName = SECTIONS.find(s => s.id === parseInt(section_id))?.name;
-            if (secName) q = query(q, where("section", "==", secName));
+    const allDocs = await allDocsPromise;
+    if (section_id && section_id !== '0') {
+        const secName = SECTIONS.find(s => s.id === parseInt(section_id))?.name;
+        if (secName) {
+            return allDocs.filter(d => d.section === secName);
         }
-        const snap = await getDocs(q);
-        return snap.docs.map(d => d.data());
-    })();
-    
-    docsCache = { key, promise: fetchPromise, time: Date.now() };
-    return await fetchPromise;
+    }
+    return allDocs;
 }
 
 const PERCENTAGE_UNITS = ['%', 'percent', 'pct'];
@@ -573,6 +580,9 @@ export const getCategorySummary = async (params) => {
     
     const isWasteSection = targetSectionName === 'Waste';
     
+    // Check if this section has any Output KPIs defined
+    const hasOutputKPIs = kpis.some(k => k.category === 'Output');
+    
     docs.forEach(d => {
         if (d.is_holiday) return;
         // Waste section: accept both 'Waste' (new) and 'Overall' (legacy) docs for backward-compatibility
@@ -587,7 +597,13 @@ export const getCategorySummary = async (params) => {
                 dailyTotalWeight += d.metrics[k].value;
             }
         });
-        if (dailyTotalWeight > 0) wdSet.add(d.date);
+        
+        if (hasOutputKPIs) {
+            if (dailyTotalWeight > 0) wdSet.add(d.date);
+        } else {
+            // For sections without output (like Waste or Utilities), any day with data counts as a working day
+            wdSet.add(d.date);
+        }
         total_weight_kg += dailyTotalWeight;
         
         Object.keys(d.metrics).forEach(kpiName => {
