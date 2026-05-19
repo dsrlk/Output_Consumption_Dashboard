@@ -182,7 +182,7 @@ export const processExcelFile = async (file, onProgress) => {
               }
 
               const dateStr = `${sheetYear}-${String(sheetMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const docId = `${dateStr}_Waste`;
+              const docId = `${dateStr}_WastePct`;
               const docRef = doc(collection(db, 'daily_records'), docId);
               
               const payload = {
@@ -192,6 +192,7 @@ export const processExcelFile = async (file, onProgress) => {
                 day: day,
                 section: 'Waste',
                 is_holiday: false,
+                source: 'waste',
                 metrics: {
                     'Waste %': { value: val, unit: '%', category: 'Consumption', capacity: null }
                 }
@@ -270,6 +271,9 @@ export const processExcelFile = async (file, onProgress) => {
           let opCount = 0;
           
           snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            if (data.source === 'waste') return; // Skip deleting waste-specific documents!
+            
             currentBatch.delete(doc.ref);
             opCount++;
             if (opCount === 450) {
@@ -330,6 +334,7 @@ export const processExcelFile = async (file, onProgress) => {
                 day: dateVal.getDate(),
                 section: sec,
                 is_holiday: isHoliday,
+                source: 'production',
                 working_days: workingDays[sec] || null,
                 metrics: sectionData[sec].metrics
               };
