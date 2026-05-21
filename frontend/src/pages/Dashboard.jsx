@@ -160,7 +160,7 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
   const unit = kpi.unit || '';
   const rawUnit = unit.replace('/Ton', '').replace('per Ton', '').trim() || '';
 
-  let chartLineColor = "var(--text-main)"; // default black
+  let chartLineColor = effectiveIsOutput ? "var(--text-main)" : "var(--primary)";
   if (chartStd != null) {
      chartLineColor = chartStdColor;
   }
@@ -245,8 +245,8 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
                 <>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: totalGood ? 'rgba(34,197,94,0.07)' : 'rgba(239,68,68,0.07)', border: `1.5px solid ${totalGood ? '#86efac' : '#fca5a5'}`, borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '160px' }}>
                     <span style={{ fontSize: '0.7rem', color: totalGood ? '#15803d' : '#b91c1c', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>vs Total Benchmark</span>
-                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: totalGood ? '#15803d' : '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      {totalGood ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
+                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: totalGood ? '#16a34a' : '#dc2626', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {totalDev >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
                       {fmtPct(totalDev)}
                     </span>
                     <span style={{ fontSize: '0.68rem', color: totalGood ? '#16a34a' : '#dc2626', opacity: 0.8 }}>
@@ -283,8 +283,8 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
                 <>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: stdGood ? 'rgba(34,197,94,0.07)' : 'rgba(239,68,68,0.07)', border: `1.5px solid ${stdGood ? '#86efac' : '#fca5a5'}`, borderRadius: '10px', padding: '0.65rem 1rem', minWidth: '160px' }}>
                     <span style={{ fontSize: '0.7rem', color: stdGood ? '#15803d' : '#b91c1c', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>vs Benchmark</span>
-                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: stdGood ? '#15803d' : '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      {stdGood ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
+                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: stdGood ? '#16a34a' : '#dc2626', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {stdDev >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
                       {fmtPct(stdDev)}
                     </span>
                     <span style={{ fontSize: '0.68rem', color: stdGood ? '#16a34a' : '#dc2626', opacity: 0.8 }}>
@@ -1215,6 +1215,7 @@ const Dashboard = () => {
             const renderCard = (kpi) => {
               const dev = getDeviation(kpi);
               const isSelected = selectedKpi?.kpi_id === kpi.kpi_id;
+              const isKpiOutput = (standardsMeta[kpi.kpi_id]?.category || selectedCategory) === 'Output';
               // Only strip the machine prefix from card title when the name
               // actually begins with that prefix (e.g. 'Total Qty' → 'Qty').
               // KPIs like 'Efficiency' that don't start with the prefix keep their full name.
@@ -1232,7 +1233,7 @@ const Dashboard = () => {
                   spotlightColor="rgba(15, 23, 42, 0.08)"
                   onClick={() => setSelectedKpi(isSelected ? null : kpi)}
                   style={{
-                    outline: isSelected ? '2px solid var(--primary)' : 'none',
+                    outline: isSelected ? (isKpiOutput ? '2px solid var(--text-main)' : '2px solid var(--primary)') : 'none',
                     outlineOffset: '2px',
                     position: 'relative',
                     cursor: 'pointer'
@@ -1242,7 +1243,7 @@ const Dashboard = () => {
                     <span className="dribbble-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {displayName}
                       {isSelected && (
-                        <span style={{ background: 'var(--primary)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.04em' }}>
+                        <span style={{ background: isKpiOutput ? 'var(--text-main)' : 'var(--primary)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.04em' }}>
                           SELECTED
                         </span>
                       )}
@@ -1261,7 +1262,7 @@ const Dashboard = () => {
                     {dev ? (
                       <>
                         <span className={`dribbble-trend-pill ${dev.isGood ? 'positive' : 'negative'}`}>
-                          {dev.isGood ? '↑' : '↓'} {Math.abs(dev.pct)}%
+                          {dev.raw >= 0 ? '↑' : '↓'} {Math.abs(dev.pct)}%
                         </span>
                         <span>
                           {dev.isTonStd

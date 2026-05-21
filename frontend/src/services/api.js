@@ -609,19 +609,28 @@ export const getCategorySummary = async (params) => {
         Object.keys(d.metrics).forEach(kpiName => {
             const cat = catMap[kpiName] || d.metrics[kpiName].category;
             if (cat === params.category) {
-                if (!agg[kpiName]) agg[kpiName] = { kpi_name: kpiName, value: 0, unit: d.metrics[kpiName].unit || unitMap[kpiName], kpi_id: KPI_LIST.find(k=>k.name===kpiName)?.id };
+                if (!agg[kpiName]) {
+                    agg[kpiName] = { 
+                        kpi_name: kpiName, 
+                        value: 0, 
+                        count: 0, 
+                        unit: d.metrics[kpiName].unit || unitMap[kpiName], 
+                        kpi_id: KPI_LIST.find(k=>k.name===kpiName)?.id 
+                    };
+                }
                 agg[kpiName].value += d.metrics[kpiName].value;
+                agg[kpiName].count += 1;
             }
         });
     });
     
     const working_days = wdSet.size;
     
-    return Object.values(agg).map(c => {
+    return Object.values(agg).map(({ count, ...c }) => {
         const isPercentage = isPct(c.unit);
         let finalValue = c.value;
-        if (isPercentage && working_days > 0) {
-            finalValue = finalValue / working_days;
+        if (isPercentage && count > 0) {
+            finalValue = finalValue / count;
         }
         return {
             ...c,
