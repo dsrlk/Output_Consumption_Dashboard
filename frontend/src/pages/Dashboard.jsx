@@ -6,6 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
   LineChart, Line, ReferenceLine, Area, AreaChart, Legend, ComposedChart
 } from 'recharts';
+import { motion } from 'motion/react';
 import { useFilters } from '../context/FilterContext';
 import CustomSelect from '../components/CustomSelect';
 import BlurText from '../components/animations/BlurText';
@@ -350,7 +351,7 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
                   <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
                     tickFormatter={v => v.toLocaleString(undefined, { maximumFractionDigits: 1 })} width={55} />
                   <Tooltip
-                    contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.8rem' }}
+                    contentStyle={{ background: 'var(--topbar-bg)', backdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: '12px', fontSize: '0.8rem', boxShadow: 'var(--shadow-md)' }}
                     formatter={(v) => [v != null ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ((viewMode === 'per_ton' ? unit : rawUnit) ? ` ${(viewMode === 'per_ton' ? unit : rawUnit)}` : '') : '—', kpi.kpi_name]}
                     labelFormatter={l => `Date: ${l}`}
                   />
@@ -1388,7 +1389,36 @@ const Dashboard = () => {
             }
 
 
-            return <div className="dashboard-grid">{renderedCards}</div>;
+            return (
+              <motion.div 
+                className="dashboard-grid"
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: { opacity: 0 },
+                  visible: {
+                    opacity: 1,
+                    transition: { staggerChildren: 0.05 }
+                  }
+                }}
+              >
+                {renderedCards.map((card, idx) => {
+                  const isPanel = card.key === 'detail-panel' || card.key === 'util-detail-panel';
+                  return (
+                    <motion.div 
+                      key={card.key || idx}
+                      variants={{
+                        hidden: { opacity: 0, y: 20 },
+                        visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
+                      }}
+                      style={isPanel ? { gridColumn: '1 / -1' } : { height: '100%' }}
+                    >
+                      {card}
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            );
           })()}
 
           {/* Always render the SmartInsightsPanel (Performance Analysis grid) regardless of section */}
@@ -1504,9 +1534,9 @@ const Dashboard = () => {
                               axisLine={false} tickLine={false} 
                             />
                             <Tooltip 
-                              contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', borderRadius: '8px', fontSize: '0.8rem' }}
+                              contentStyle={{ backgroundColor: 'var(--topbar-bg)', backdropFilter: 'blur(12px)', borderColor: 'var(--border-color)', borderRadius: '12px', fontSize: '0.8rem', boxShadow: 'var(--shadow-md)' }}
                               formatter={(value, name) => [value.toLocaleString(undefined, { maximumFractionDigits: 0 }) + (primaryKpi.unit ? ` ${primaryKpi.unit}` : ''), name === 'target' ? 'Target Trajectory' : 'Actual Cumulative']}
-                              labelStyle={{ color: 'var(--text-color)', fontWeight: 'bold', marginBottom: '4px' }}
+                              labelStyle={{ color: 'var(--text-main)', fontWeight: 'bold', marginBottom: '4px' }}
                             />
                             <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                             <Line type="monotone" dataKey="target" stroke="var(--text-muted)" strokeWidth={2} strokeDasharray="5 5" dot={false} name="target" />
