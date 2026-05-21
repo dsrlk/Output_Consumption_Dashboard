@@ -335,8 +335,9 @@ export const getCrossSectionSummary = async (params = {}) => {
                 const kpiInfo = kpis.find(kpi => kpi.name === k);
                 const cat = d.metrics[k].category || (kpiInfo ? kpiInfo.category : null);
                 if (cat === 'Consumption') {
-                    if (!consMap[k]) consMap[k] = { kpi_name: k, total: 0, unit: d.metrics[k].unit, kpi_id: kpiInfo?.id };
+                    if (!consMap[k]) consMap[k] = { kpi_name: k, total: 0, count: 0, unit: d.metrics[k].unit, kpi_id: kpiInfo?.id };
                     consMap[k].total += d.metrics[k].value;
+                    consMap[k].count += 1;
                 }
             });
         });
@@ -360,12 +361,17 @@ export const getCrossSectionSummary = async (params = {}) => {
                 }
             }
             
+            let finalTotal = c.total;
+            if (isPct(c.unit) && c.count > 0) {
+                finalTotal = c.total / c.count;
+            }
+            
             consumption.push({
                 kpi_id: c.kpi_id,
                 kpi_name: c.kpi_name,
                 unit: c.unit,
-                total: round2(c.total),
-                per_ton: totalWeightTons ? round2(c.total / totalWeightTons) : null,
+                total: round2(finalTotal),
+                per_ton: totalWeightTons && !isPct(c.unit) ? round2(c.total / totalWeightTons) : null,
                 period_std: round2(periodStd),
                 deviation: round2(deviation),
                 std_period_type: std ? std.period_type : null
@@ -413,6 +419,7 @@ export const getCategoryPerTon = async (params) => {
             const kpiInfo = kpis.find(k => k.name === kpiName);
             if (!kpiInfo || kpiInfo.category !== 'Consumption') return;
             if (kpiName.toLowerCase() === 'no of workers' || kpiName.toLowerCase() === 'hours worked') return;
+            if (isPct(d.metrics[kpiName].unit)) return;
             
             if (!agg[kpiName]) agg[kpiName] = { kpi_id: kpiInfo.id, kpi_name: kpiName, total: 0, unit: `${d.metrics[kpiName].unit}/Ton` };
             agg[kpiName].total += d.metrics[kpiName].value;
