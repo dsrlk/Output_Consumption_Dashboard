@@ -500,10 +500,10 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
   const healthBg    = healthScore >= 70 ? 'rgba(22,163,74,0.06)' : healthScore >= 40 ? 'rgba(180,83,9,0.06)' : 'rgba(185,28,28,0.06)';
 
   const allRows = [
-    ...critical.map(a      => ({ ...a, _c: '#b91c1c', _sev: 'critical' })),
-    ...warning.map(a       => ({ ...a, _c: '#b45309', _sev: 'warning'  })),
-    ...minor.map(a         => ({ ...a, _c: '#64748b', _sev: 'minor'    })),
-    ...topPerformers.map(p => ({ ...p, _c: '#16a34a', _sev: 'good'    })),
+    ...critical.map(a      => ({ ...a, _c: '#ef4444', _sev: 'critical' })),
+    ...warning.map(a       => ({ ...a, _c: '#ef4444', _sev: 'warning'  })),
+    ...minor.map(a         => ({ ...a, _c: '#ef4444', _sev: 'minor'    })),
+    ...topPerformers.map(p => ({ ...p, _c: '#22c55e', _sev: 'good'    })),
   ];
 
   const summaryOk = alerts.length === 0;
