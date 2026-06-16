@@ -1234,7 +1234,7 @@ const Dashboard = () => {
                   spotlightColor="rgba(15, 23, 42, 0.08)"
                   onClick={() => setSelectedKpi(isSelected ? null : kpi)}
                   style={{
-                    outline: isSelected ? (isKpiOutput ? '2px solid var(--text-main)' : '2px solid var(--primary)') : 'none',
+                    outline: isSelected ? '2px solid #ef4444' : 'none',
                     outlineOffset: '2px',
                     position: 'relative',
                     cursor: 'pointer'
@@ -1244,7 +1244,7 @@ const Dashboard = () => {
                     <span className="dribbble-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {displayName}
                       {isSelected && (
-                        <span style={{ background: isKpiOutput ? 'var(--text-main)' : 'var(--primary)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.04em' }}>
+                        <span style={{ background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.04em' }}>
                           SELECTED
                         </span>
                       )}
@@ -1340,12 +1340,12 @@ const Dashboard = () => {
                     className={`dribbble-card ${isUtilSelected ? 'selected' : ''}`}
                     spotlightColor="rgba(15, 23, 42, 0.08)"
                     onClick={() => { setSelectedUtilKpi(isUtilSelected ? null : kpi); setSelectedKpi(null); }}
-                    style={{ outline: isUtilSelected ? '2px solid var(--primary)' : 'none', outlineOffset: '2px', cursor: 'pointer', position: 'relative' }}
+                    style={{ outline: isUtilSelected ? '2px solid #ef4444' : 'none', outlineOffset: '2px', cursor: 'pointer', position: 'relative' }}
                   >
                     <div className="dribbble-header">
                       <span className="dribbble-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {kpi.kpi_name}
-                        {isUtilSelected && <span style={{ background: 'var(--primary)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.04em' }}>SELECTED</span>}
+                        {isUtilSelected && <span style={{ background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.04em' }}>SELECTED</span>}
                       </span>
                       <button className="dribbble-action">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
