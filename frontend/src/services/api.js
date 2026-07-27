@@ -392,32 +392,57 @@ export const getCrossSectionSummary = async (params = {}) => {
 }
 
 export const getCategoryPerTon = async (params) => {
-    if (params.section_id === '0') return [];
-    const docs = await getDocsForDateRange(params.start_date, params.end_date, params.section_id);
+    const docs = await getDocsForDateRange(params.start_date, params.end_date, '0');
+    
+    const isOverall = params.section_id === '0';
+    const targetSectionName = isOverall ? 'Overall' : SECTIONS.find(s => s.id === parseInt(params.section_id))?.name;
     const kpis = await getKPIs({ section_id: params.section_id });
     
     const sdocs = docs.filter(d => !d.is_holiday);
     if (sdocs.length === 0) return [];
 
-    let totalWeightKg = 0;
+    // Calculate section-specific output weight AND corrugator output weight as fallback
+    let sectionWeightKg = 0;
+    let corrugatorWeightKg = 0;
+
     sdocs.forEach(d => {
+        let dailyOutput = 0;
         Object.keys(d.metrics).forEach(k => {
             if ((k.toLowerCase() === 'weight' || k.toLowerCase() === 'total weight') && d.metrics[k].category === 'Output') {
-                totalWeightKg += d.metrics[k].value;
+                dailyOutput += d.metrics[k].value;
             }
         });
+
+        if (d.section === 'Corrugator') {
+            corrugatorWeightKg += dailyOutput;
+        }
+        if (!isOverall && targetSectionName && d.section === targetSectionName) {
+            sectionWeightKg += dailyOutput;
+        }
     });
-    
+
+    const totalWeightKg = (sectionWeightKg > 0) ? sectionWeightKg : corrugatorWeightKg;
     const totalWeightTons = totalWeightKg / 1000;
     if (totalWeightTons === 0) return [];
     
     const stds = await getStandards({ section_id: params.section_id });
     const agg = {};
+
+    const isWasteSection = targetSectionName === 'Waste';
     
     sdocs.forEach(d => {
+        const sectionMatch = isOverall
+            ? true
+            : isWasteSection
+            ? (d.section === 'Waste' || d.section === 'Overall')
+            : d.section === targetSectionName;
+            
+        if (!sectionMatch) return;
+        
         Object.keys(d.metrics).forEach(kpiName => {
             const kpiInfo = kpis.find(k => k.name === kpiName);
-            if (!kpiInfo || kpiInfo.category !== 'Consumption') return;
+            const cat = d.metrics[kpiName]?.category || kpiInfo?.category;
+            if (!kpiInfo || (cat !== 'Consumption' && cat !== 'Utilities')) return;
             if (kpiName.toLowerCase() === 'no of workers' || kpiName.toLowerCase() === 'hours worked') return;
             if (isPct(d.metrics[kpiName].unit)) return;
             

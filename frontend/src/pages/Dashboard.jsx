@@ -770,8 +770,7 @@ const Dashboard = () => {
   const { selectedSection, setSelectedSection, selectedCategory, setSelectedCategory, startDate, setStartDate, endDate, setEndDate } = useFilters();
 
   const selectedSectionName = sectionsList.find(s => s.id.toString() === selectedSection)?.name || '';
-  const isSales   = selectedSectionName === 'Sales';
-  const showPerTon = viewMode === 'per_ton' && selectedCategory === 'Consumption' && !isSales && selectedSection !== '0';
+  const showPerTon = viewMode === 'per_ton' && selectedCategory === 'Consumption' && !isSales;
 
   const [cols, setCols] = useState(1);
   useEffect(() => {
@@ -1110,7 +1109,7 @@ const Dashboard = () => {
             </div>
           ))}
 
-          {selectedSection !== '0' && !isSales && selectedCategory === 'Consumption' && selectedSectionName !== 'Utilities' && selectedSectionName !== 'Waste' && (
+          {!isSales && selectedCategory === 'Consumption' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>View</span>
               <CustomSelect 
