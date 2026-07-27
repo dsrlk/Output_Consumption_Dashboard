@@ -448,7 +448,7 @@ export const getCategoryPerTon = async (params) => {
     return res;
 }
 
-export const getTrends = async (kpiId, params) => {
+export const getTrends = async (kpiId, params = {}) => {
     const docs = await getDocsForDateRange(params.start_date, params.end_date, '0');
     
     let kpiNames = [];
@@ -471,6 +471,31 @@ export const getTrends = async (kpiId, params) => {
     // For Waste %, we need to pull from both new 'Waste' section and legacy 'Overall' section docs
     const isWastePctQuery = kpiNames.includes("Waste %") && (kpiId === -4 || kpiId === 73);
     
+    const isPerTon = params.view_mode === 'per_ton';
+    const outputWeightByDate = {};
+    const corrugatorWeightByDate = {};
+    
+    if (isPerTon) {
+        docs.forEach(d => {
+            if (d.is_holiday) return;
+            let sectionOutputWeight = 0;
+            Object.keys(d.metrics).forEach(k => {
+                if ((k.toLowerCase() === 'weight' || k.toLowerCase() === 'total weight') && d.metrics[k].category === 'Output') {
+                    sectionOutputWeight += d.metrics[k].value;
+                }
+            });
+            
+            if (sectionOutputWeight > 0) {
+                if (d.section === 'Corrugator') {
+                    corrugatorWeightByDate[d.date] = (corrugatorWeightByDate[d.date] || 0) + sectionOutputWeight;
+                }
+                if (targetSection && d.section === targetSection) {
+                    outputWeightByDate[d.date] = (outputWeightByDate[d.date] || 0) + sectionOutputWeight;
+                }
+            }
+        });
+    }
+
     const totalsByDate = {};
     docs.forEach(d => {
         if (d.is_holiday) return;
@@ -494,10 +519,22 @@ export const getTrends = async (kpiId, params) => {
     });
     
     const sortedDates = Object.keys(totalsByDate).sort();
-    return sortedDates.map(d => ({
-        date: d,
-        total: totalsByDate[d] // the python trend logic does not round the raw trend arrays
-    }));
+    return sortedDates.map(d => {
+        let val = totalsByDate[d];
+        if (isPerTon) {
+            const outKg = outputWeightByDate[d] || corrugatorWeightByDate[d] || 0;
+            const outTons = outKg / 1000;
+            if (outTons > 0) {
+                val = val / outTons;
+            } else {
+                val = null;
+            }
+        }
+        return {
+            date: d,
+            total: val != null ? round2(val) : null
+        };
+    }).filter(item => item.total != null);
 }
 
 export const getSummary = async (params) => {

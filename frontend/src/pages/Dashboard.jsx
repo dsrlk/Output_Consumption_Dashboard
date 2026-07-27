@@ -80,10 +80,11 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
 
   // Deviation from direct standard (useful when standard unit matches view mode)
   const isMatchingStd = ((isTonStd && viewMode === 'per_ton') || (!isTonStd && viewMode === 'total')) && kpi.pre_computed_period_std == null;
-  const stdDev  = isMatchingStd && standard != null && standard !== 0 && avg != null
-    ? ((avg - standard) / standard) * 100 : null;
+  const compareVal = (typeof kpi.value === 'number') ? kpi.value : avg;
+  const stdDev  = isMatchingStd && standard != null && standard !== 0 && compareVal != null
+    ? ((compareVal - standard) / standard) * 100 : null;
   const stdGood = stdDev != null ? (effectiveIsOutput ? stdDev >= 0 : stdDev <= 0) : null;
-  const absStdDev = isMatchingStd && standard != null && avg != null ? avg - standard : null;
+  const absStdDev = isMatchingStd && standard != null && compareVal != null ? compareVal - standard : null;
 
   // Deviation using computed total-period standard (per-ton std × total tons OR pre-computed standard)
   const effectiveTotalStd = (viewMode === 'total') ? (kpi.pre_computed_period_std ?? totalStdFromTon) : null;

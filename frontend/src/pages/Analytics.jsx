@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getSections, getCategoryDailyMatrix, getCategoryPerTon, getCrossSectionSummary } from '../services/api';
 import { Filter, Zap, Info, Trophy, AlertTriangle, TrendingDown, Target, Building } from 'lucide-react';
-import { useFilters } from '../context/FilterContext';
+import { motion } from 'motion/react';
 import CustomSelect from '../components/CustomSelect';
 import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, Cell, Legend, ReferenceLine } from 'recharts';
 import BlurText from '../components/animations/BlurText';
@@ -60,6 +60,20 @@ const Heatmap = ({ rows, dates }) => {
   const [hover, setHover] = useState(null);
   const [pos,   setPos]   = useState({ x: 0, y: 0 });
 
+  // Enhanced tooltip styling with frosted glass
+  const tooltipStyle = {
+    background: 'var(--topbar-bg)',
+    backdropFilter: 'blur(10px)',
+    border: '1px solid var(--border-color)',
+    borderRadius: '12px',
+    padding: '0.65rem 0.9rem',
+    boxShadow: 'var(--shadow-md)',
+    zIndex: 9999,
+    pointerEvents: 'none',
+    minWidth: '160px',
+    fontSize: '0.8rem'
+  };
+
   if (!rows.length || !dates.length) return null;
 
   const CELL_W   = 42;
@@ -69,7 +83,7 @@ const Heatmap = ({ rows, dates }) => {
 
   return (
     <div style={{ overflowX: 'auto', overflowY: 'visible', position: 'relative', width: '100%', paddingBottom: '0.5rem' }}>
-      <Tooltip cell={hover} pos={pos} />
+      <Tooltip cell={hover} pos={pos} style={tooltipStyle} />
       
       {/* Date Headers */}
       <div style={{ display: 'flex', marginBottom: '2px', minWidth: 'min-content' }}>
@@ -512,56 +526,54 @@ const Analytics = () => {
           </div>
 
           {/* Efficiency Details per Department */}
-          {efficiencyKpis.length > 0 && (
-            <SpotlightCard className="dribbble-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '12px', background: 'var(--bg-outer)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Zap size={18} />
+          <motion.div
+            className="efficiency-grid"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
+            }}
+          >
+            {efficiencyKpis.length > 0 && (
+              <SpotlightCard className="dribbble-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '12px', background: 'var(--bg-outer)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Zap size={18} />
+                  </div>
+                  <div>
+                    <h3 className="card-title" style={{ margin: 0 }}>Efficiency Summary — Per MT Produced</h3>
+                    <p style={{ fontSize: '0.73rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                      Total period average — how much material per metric ton of output
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="card-title" style={{ margin: 0 }}>Efficiency Summary — Per MT Produced</h3>
-                  <p style={{ fontSize: '0.73rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                    Total period average — how much material per metric ton of output
-                  </p>
-                </div>
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '0.75rem' }}>
-                {efficiencyKpis.map((k) => {
-                  // If deviation exists, color accordingly. Higher deviation = worse (usage > allowed).
-                  let c = 'var(--text-main)';
-                  let bg = 'var(--bg-outer)';
-                  
-                  if (k.deviation !== null && k.deviation !== undefined) {
-                    if (k.deviation > 0) {
-                      c = 'var(--danger)'; // Over-consuming
-                      bg = 'color-mix(in srgb, var(--danger) 15%, transparent)';
-                    } else if (k.deviation <= 0) {
-                      c = 'var(--success)'; // Efficient
-                      bg = 'color-mix(in srgb, var(--success) 15%, transparent)';
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '0.75rem' }}>
+                  {efficiencyKpis.map((k) => {
+                    let c = 'var(--text-main)';
+                    let bg = 'var(--bg-outer)';
+                    if (k.deviation !== null && k.deviation !== undefined) {
+                      if (k.deviation > 0) {
+                        c = 'var(--danger)'; // Over-consuming
+                        bg = 'color-mix(in srgb, var(--danger) 15%, transparent)';
+                      } else {
+                        c = 'var(--success)'; // Efficient
+                        bg = 'color-mix(in srgb, var(--success) 15%, transparent)';
+                      }
                     }
-                  }
-
-                  return (
-                    <SpotlightCard key={k.kpi_id} className="dribbble-card" style={{ padding: '1.25rem' }}>
-                      <div className="dribbble-header">
-                        <span className="dribbble-title" style={{ fontSize: '0.85rem' }}>{k.kpi_name}</span>
+                    return (
+                      <div key={k.kpi_name}
+                           style={{ background: bg, color: c, padding: '0.5rem', borderRadius: '8px' }}>
+                        <div style={{ fontWeight: 600 }}>{k.kpi_name}</div>
+                        <div>{fmt(k.value, 1)} {k.unit}</div>
                       </div>
-                      <div className="dribbble-value" style={{ fontSize: '2rem', marginBottom: '0.5rem', color: c }}>
-                        <CountUp to={k.value} duration={0.8} />
-                      </div>
-                      <div className="dribbble-footer">
-                        <span className="dribbble-trend-pill neutral" style={{ background: bg, color: c }}>
-                          {k.unit}
-                        </span>
-                        <span>over {fmt(k.total_weight_tons, 1)} MT</span>
-                      </div>
-                    </SpotlightCard>
-                  );
-                })}
-              </div>
-            </SpotlightCard>
-          )}
+                    );
+                  })}
+                </div>
+              </SpotlightCard>
+            )}
+          </motion.div>
         </>
       )}
     </div>

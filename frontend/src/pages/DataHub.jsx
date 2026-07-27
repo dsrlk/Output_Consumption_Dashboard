@@ -220,7 +220,7 @@ const DataHub = () => {
       await loadRecords(0);
     } catch (e) {
       console.error("Upload failed:", e);
-      alert("File upload failed. Ensure it's a valid Excel file.");
+      alert(`File upload failed: ${e.message || e}`);
     } finally {
       setLoadingUpload(false);
       if (fileInputRef.current) fileInputRef.current.value = ''; // Reset input

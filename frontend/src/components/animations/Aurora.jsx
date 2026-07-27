@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
 import './animations.css';
 
-export const Aurora = () => {
-  return (
-    <div className="aurora-container" aria-hidden="true">
-      <div className="aurora-mesh"></div>
-    </div>
-  );
-};
+/* Three independent aurora layers — dark void bg with crimson + amber pulse */
+export const Aurora = () => (
+  <div className="aurora-container" aria-hidden="true">
+    <div className="aurora-layer-1" />
+    <div className="aurora-layer-2" />
+    <div className="aurora-layer-3" />
+    <div className="aurora-noise" />
+  </div>
+);
