@@ -1,49 +1,24 @@
-/* ═══════════════════════════════════════════════════════════════════
-   SPOTLIGHT CARD — Crimson radial hover effect (dark theme)
-   ═══════════════════════════════════════════════════════════════════ */
-
 .card-spotlight {
   position: relative;
   overflow: hidden;
 }
 
-/* Crimson radial that follows the cursor */
 .card-spotlight::before {
   content: "";
   position: absolute;
   inset: -1px;
   background: radial-gradient(
-    620px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(232, 64, 64, 0.13),
+    800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    var(--spotlight-color, rgba(255, 255, 255, 0.25)),
     transparent 40%
   );
   opacity: 0;
-  transition: opacity 0.30s ease;
+  transition: opacity 0.4s ease;
   pointer-events: none;
-  z-index: 2;
-  border-radius: var(--radius, 22px);
+  z-index: 10;
+  border-radius: var(--radius, 20px);
 }
 
-/* Subtle inner glow ring that appears on hover */
-.card-spotlight::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius, 22px);
-  border: 1px solid transparent;
-  box-shadow: inset 0 0 0 1px transparent;
-  transition: border-color 0.28s ease, box-shadow 0.28s ease;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.card-spotlight:hover::before { opacity: 1; }
-
-.card-spotlight:hover::after {
-  border-color: rgba(232, 64, 64, 0.22);
-  box-shadow: inset 0 0 24px rgba(232, 64, 64, 0.06);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card-spotlight::before { transition: none; opacity: 0 !important; }
+.card-spotlight:hover::before {
+  opacity: 1;
 }

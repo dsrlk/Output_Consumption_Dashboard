@@ -6,7 +6,6 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
   LineChart, Line, ReferenceLine, Area, AreaChart, Legend, ComposedChart
 } from 'recharts';
-import { motion } from 'motion/react';
 import { useFilters } from '../context/FilterContext';
 import CustomSelect from '../components/CustomSelect';
 import BlurText from '../components/animations/BlurText';
@@ -80,11 +79,10 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
 
   // Deviation from direct standard (useful when standard unit matches view mode)
   const isMatchingStd = ((isTonStd && viewMode === 'per_ton') || (!isTonStd && viewMode === 'total')) && kpi.pre_computed_period_std == null;
-  const compareVal = (typeof kpi.value === 'number') ? kpi.value : avg;
-  const stdDev  = isMatchingStd && standard != null && standard !== 0 && compareVal != null
-    ? ((compareVal - standard) / standard) * 100 : null;
+  const stdDev  = isMatchingStd && standard != null && standard !== 0 && avg != null
+    ? ((avg - standard) / standard) * 100 : null;
   const stdGood = stdDev != null ? (effectiveIsOutput ? stdDev >= 0 : stdDev <= 0) : null;
-  const absStdDev = isMatchingStd && standard != null && compareVal != null ? compareVal - standard : null;
+  const absStdDev = isMatchingStd && standard != null && avg != null ? avg - standard : null;
 
   // Deviation using computed total-period standard (per-ton std × total tons OR pre-computed standard)
   const effectiveTotalStd = (viewMode === 'total') ? (kpi.pre_computed_period_std ?? totalStdFromTon) : null;
@@ -352,7 +350,7 @@ const KpiDetailPanel = ({ kpi, standard, standardMeta, selectedSection, startDat
                   <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
                     tickFormatter={v => v.toLocaleString(undefined, { maximumFractionDigits: 1 })} width={55} />
                   <Tooltip
-                    contentStyle={{ background: 'var(--topbar-bg)', backdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: '12px', fontSize: '0.8rem', boxShadow: 'var(--shadow-md)' }}
+                    contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.8rem' }}
                     formatter={(v) => [v != null ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ((viewMode === 'per_ton' ? unit : rawUnit) ? ` ${(viewMode === 'per_ton' ? unit : rawUnit)}` : '') : '—', kpi.kpi_name]}
                     labelFormatter={l => `Date: ${l}`}
                   />
@@ -501,10 +499,10 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
   const healthBg    = healthScore >= 70 ? 'rgba(22,163,74,0.06)' : healthScore >= 40 ? 'rgba(180,83,9,0.06)' : 'rgba(185,28,28,0.06)';
 
   const allRows = [
-    ...critical.map(a      => ({ ...a, _c: '#ef4444', _sev: 'critical' })),
-    ...warning.map(a       => ({ ...a, _c: '#ef4444', _sev: 'warning'  })),
-    ...minor.map(a         => ({ ...a, _c: '#ef4444', _sev: 'minor'    })),
-    ...topPerformers.map(p => ({ ...p, _c: '#22c55e', _sev: 'good'    })),
+    ...critical.map(a      => ({ ...a, _c: '#b91c1c', _sev: 'critical' })),
+    ...warning.map(a       => ({ ...a, _c: '#b45309', _sev: 'warning'  })),
+    ...minor.map(a         => ({ ...a, _c: '#64748b', _sev: 'minor'    })),
+    ...topPerformers.map(p => ({ ...p, _c: '#16a34a', _sev: 'good'    })),
   ];
 
   const summaryOk = alerts.length === 0;
@@ -770,7 +768,8 @@ const Dashboard = () => {
   const { selectedSection, setSelectedSection, selectedCategory, setSelectedCategory, startDate, setStartDate, endDate, setEndDate } = useFilters();
 
   const selectedSectionName = sectionsList.find(s => s.id.toString() === selectedSection)?.name || '';
-  const showPerTon = viewMode === 'per_ton' && selectedCategory === 'Consumption' && !isSales;
+  const isSales   = selectedSectionName === 'Sales';
+  const showPerTon = viewMode === 'per_ton' && selectedCategory === 'Consumption' && !isSales && selectedSection !== '0';
 
   const [cols, setCols] = useState(1);
   useEffect(() => {
@@ -1109,7 +1108,7 @@ const Dashboard = () => {
             </div>
           ))}
 
-          {!isSales && selectedCategory === 'Consumption' && (
+          {selectedSection !== '0' && !isSales && selectedCategory === 'Consumption' && selectedSectionName !== 'Utilities' && selectedSectionName !== 'Waste' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>View</span>
               <CustomSelect 
@@ -1234,7 +1233,7 @@ const Dashboard = () => {
                   spotlightColor="rgba(15, 23, 42, 0.08)"
                   onClick={() => setSelectedKpi(isSelected ? null : kpi)}
                   style={{
-                    outline: isSelected ? '2px solid #ef4444' : 'none',
+                    outline: isSelected ? (isKpiOutput ? '2px solid var(--text-main)' : '2px solid var(--primary)') : 'none',
                     outlineOffset: '2px',
                     position: 'relative',
                     cursor: 'pointer'
@@ -1244,7 +1243,7 @@ const Dashboard = () => {
                     <span className="dribbble-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {displayName}
                       {isSelected && (
-                        <span style={{ background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.04em' }}>
+                        <span style={{ background: isKpiOutput ? 'var(--text-main)' : 'var(--primary)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.04em' }}>
                           SELECTED
                         </span>
                       )}
@@ -1340,12 +1339,12 @@ const Dashboard = () => {
                     className={`dribbble-card ${isUtilSelected ? 'selected' : ''}`}
                     spotlightColor="rgba(15, 23, 42, 0.08)"
                     onClick={() => { setSelectedUtilKpi(isUtilSelected ? null : kpi); setSelectedKpi(null); }}
-                    style={{ outline: isUtilSelected ? '2px solid #ef4444' : 'none', outlineOffset: '2px', cursor: 'pointer', position: 'relative' }}
+                    style={{ outline: isUtilSelected ? '2px solid var(--primary)' : 'none', outlineOffset: '2px', cursor: 'pointer', position: 'relative' }}
                   >
                     <div className="dribbble-header">
                       <span className="dribbble-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {kpi.kpi_name}
-                        {isUtilSelected && <span style={{ background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.04em' }}>SELECTED</span>}
+                        {isUtilSelected && <span style={{ background: 'var(--primary)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.04em' }}>SELECTED</span>}
                       </span>
                       <button className="dribbble-action">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
@@ -1389,36 +1388,7 @@ const Dashboard = () => {
             }
 
 
-            return (
-              <motion.div 
-                className="dashboard-grid"
-                initial="hidden"
-                animate="visible"
-                variants={{
-                  hidden: { opacity: 0 },
-                  visible: {
-                    opacity: 1,
-                    transition: { staggerChildren: 0.05 }
-                  }
-                }}
-              >
-                {renderedCards.map((card, idx) => {
-                  const isPanel = card.key === 'detail-panel' || card.key === 'util-detail-panel';
-                  return (
-                    <motion.div 
-                      key={card.key || idx}
-                      variants={{
-                        hidden: { opacity: 0, y: 20 },
-                        visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
-                      }}
-                      style={isPanel ? { gridColumn: '1 / -1' } : { height: '100%' }}
-                    >
-                      {card}
-                    </motion.div>
-                  );
-                })}
-              </motion.div>
-            );
+            return <div className="dashboard-grid">{renderedCards}</div>;
           })()}
 
           {/* Always render the SmartInsightsPanel (Performance Analysis grid) regardless of section */}
@@ -1534,9 +1504,9 @@ const Dashboard = () => {
                               axisLine={false} tickLine={false} 
                             />
                             <Tooltip 
-                              contentStyle={{ backgroundColor: 'var(--topbar-bg)', backdropFilter: 'blur(12px)', borderColor: 'var(--border-color)', borderRadius: '12px', fontSize: '0.8rem', boxShadow: 'var(--shadow-md)' }}
+                              contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', borderRadius: '8px', fontSize: '0.8rem' }}
                               formatter={(value, name) => [value.toLocaleString(undefined, { maximumFractionDigits: 0 }) + (primaryKpi.unit ? ` ${primaryKpi.unit}` : ''), name === 'target' ? 'Target Trajectory' : 'Actual Cumulative']}
-                              labelStyle={{ color: 'var(--text-main)', fontWeight: 'bold', marginBottom: '4px' }}
+                              labelStyle={{ color: 'var(--text-color)', fontWeight: 'bold', marginBottom: '4px' }}
                             />
                             <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                             <Line type="monotone" dataKey="target" stroke="var(--text-muted)" strokeWidth={2} strokeDasharray="5 5" dot={false} name="target" />
