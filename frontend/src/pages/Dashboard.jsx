@@ -769,7 +769,7 @@ const Dashboard = () => {
 
   const selectedSectionName = sectionsList.find(s => s.id.toString() === selectedSection)?.name || '';
   const isSales   = selectedSectionName === 'Sales';
-  const showPerTon = viewMode === 'per_ton' && selectedCategory === 'Consumption' && !isSales && selectedSection !== '0';
+  const showPerTon = viewMode === 'per_ton' && !isSales && (selectedSection === '0' || selectedCategory === 'Consumption');
 
   const [cols, setCols] = useState(1);
   useEffect(() => {
@@ -1069,7 +1069,7 @@ const Dashboard = () => {
             />
           </div>
 
-          {!isSales && (selectedSectionName !== 'Waste' ? (
+          {selectedSection !== '0' && !isSales && (selectedSectionName !== 'Waste' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Category</span>
               <CustomSelect 
@@ -1108,7 +1108,7 @@ const Dashboard = () => {
             </div>
           ))}
 
-          {selectedSection !== '0' && !isSales && selectedCategory === 'Consumption' && selectedSectionName !== 'Utilities' && selectedSectionName !== 'Waste' && (
+          {(selectedSection === '0' || (!isSales && selectedCategory === 'Consumption' && selectedSectionName !== 'Utilities' && selectedSectionName !== 'Waste')) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>View</span>
               <CustomSelect 
