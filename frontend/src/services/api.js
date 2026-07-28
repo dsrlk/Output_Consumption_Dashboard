@@ -401,7 +401,6 @@ export const getCategoryPerTon = async (params) => {
     const sdocs = docs.filter(d => !d.is_holiday);
     if (sdocs.length === 0) return [];
 
-    // Calculate section-specific output weight AND corrugator output weight as fallback
     let sectionWeightKg = 0;
     let corrugatorWeightKg = 0;
 
@@ -430,6 +429,12 @@ export const getCategoryPerTon = async (params) => {
 
     const isWasteSection = targetSectionName === 'Waste';
     
+    const getCleanKpiName = (rawName) => {
+        let name = rawName.replace(/\s*\/\s*Ton/i, '').replace(/ Consumed/i, '').trim();
+        if (name === 'Corn Starch') name = 'Starch';
+        return name;
+    };
+
     sdocs.forEach(d => {
         const sectionMatch = isOverall
             ? true
@@ -444,27 +449,52 @@ export const getCategoryPerTon = async (params) => {
             const cat = d.metrics[kpiName]?.category || kpiInfo?.category;
             if (kpiName.toLowerCase() === 'no of workers' || kpiName.toLowerCase() === 'hours worked') return;
             
-            // Exclude pure output KPIs in per-ton view except Waste % which is a percentage
             const isPercentage = isPct(d.metrics[kpiName]?.unit || kpiInfo?.unit);
             if (!isPercentage && (cat === 'Output' || cat === 'Orders')) return;
             
+            const cleanName = getCleanKpiName(kpiName);
             const rawUnit = d.metrics[kpiName]?.unit || kpiInfo?.unit || '';
-            const perTonUnit = isPercentage ? '%' : (rawUnit.includes('/Ton') ? rawUnit : `${rawUnit}/Ton`);
-            
-            // Map names nicely (e.g. Furnace Oil Consumed -> Furnace Oil)
-            let cleanName = kpiName;
-            if (kpiName === 'Furnace Oil Consumed') cleanName = 'Furnace Oil';
+            const isPreComputedPerTon = kpiName.toLowerCase().includes('/ton') || rawUnit.toLowerCase().includes('/ton');
+            const baseUnit = rawUnit.replace(/\/Ton/i, '').trim();
+            const perTonUnit = isPercentage ? '%' : (baseUnit ? `${baseUnit}/Ton` : 'KG/Ton');
 
-            if (!agg[cleanName]) agg[cleanName] = { kpi_id: kpiInfo?.id || -99, kpi_name: cleanName, total: 0, count: 0, isPct: isPercentage, unit: perTonUnit };
-            agg[cleanName].total += d.metrics[kpiName].value;
-            agg[cleanName].count += 1;
+            if (!agg[cleanName]) {
+                agg[cleanName] = { 
+                    kpi_id: kpiInfo?.id || -99, 
+                    kpi_name: cleanName, 
+                    totalRaw: 0, 
+                    preComputedSum: 0, 
+                    preComputedCount: 0, 
+                    count: 0, 
+                    isPct: isPercentage, 
+                    unit: perTonUnit 
+                };
+            }
+
+            if (isPercentage) {
+                agg[cleanName].totalRaw += d.metrics[kpiName].value;
+                agg[cleanName].count += 1;
+            } else if (isPreComputedPerTon) {
+                agg[cleanName].preComputedSum += d.metrics[kpiName].value;
+                agg[cleanName].preComputedCount += 1;
+            } else {
+                agg[cleanName].totalRaw += d.metrics[kpiName].value;
+            }
         });
     });
     
     const res = [];
     Object.values(agg).forEach(c => {
-        const val = c.isPct ? (c.count > 0 ? c.total / c.count : 0) : (c.total / totalWeightTons);
-        const std = stds.find(s => s.kpi_id === c.kpi_id && s.period_type === 'ton');
+        let val = 0;
+        if (c.isPct) {
+            val = c.count > 0 ? c.totalRaw / c.count : 0;
+        } else if (c.preComputedCount > 0 && c.totalRaw === 0) {
+            val = c.preComputedSum / c.preComputedCount;
+        } else {
+            val = c.totalRaw / totalWeightTons;
+        }
+
+        const std = stds.find(s => (s.kpi_id === c.kpi_id || s.kpi_name === c.kpi_name) && s.period_type === 'ton');
         let deviation = null;
         if (std && std.standard_value > 0) {
             deviation = ((val - std.standard_value) / std.standard_value) * 100;
@@ -686,6 +716,8 @@ export const getCategorySummary = async (params) => {
         total_weight_kg += dailyTotalWeight;
         
         Object.keys(d.metrics).forEach(kpiName => {
+            // Ignore pre-calculated /Ton columns in Total View to prevent duplicate cards
+            if (kpiName.toLowerCase().includes('/ton')) return;
             const cat = catMap[kpiName] || d.metrics[kpiName].category;
             if (cat === params.category) {
                 if (!agg[kpiName]) {
