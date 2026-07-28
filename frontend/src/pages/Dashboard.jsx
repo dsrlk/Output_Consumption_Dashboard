@@ -1395,7 +1395,22 @@ const Dashboard = () => {
             }
 
 
-            return <div className="dashboard-grid">{renderedCards}</div>;
+            return (
+              <div className="dashboard-grid">
+                {renderedCards.length > 0 ? (
+                  renderedCards
+                ) : (
+                  <div style={{ gridColumn: '1 / -1', padding: '3.5rem 2rem', textAlign: 'center', background: 'var(--card-bg)', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ color: 'var(--text-main)', fontSize: '1rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+                      No Data Recorded
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                      There is no data recorded for the selected section and date range.
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
           })()}
 
           {/* Always render the SmartInsightsPanel (Performance Analysis grid) regardless of section */}
