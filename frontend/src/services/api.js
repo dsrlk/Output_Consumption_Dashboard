@@ -237,6 +237,12 @@ const getDocsForDateRange = async (start_date, end_date, section_id) => {
 const PERCENTAGE_UNITS = ['%', 'percent', 'pct'];
 const isPct = (unit) => unit && PERCENTAGE_UNITS.includes(unit.toLowerCase());
 const round2 = (num) => (num !== null && num !== undefined) ? Math.round(num * 100) / 100 : null;
+const getCleanKpiName = (rawName) => {
+    if (!rawName) return '';
+    let name = rawName.replace(/\s*\/\s*Ton/i, '').replace(/ Consumed/i, '').trim();
+    if (name === 'Corn Starch') name = 'Starch';
+    return name;
+};
 
 export const getCategoryDailyMatrix = async (params) => {
     const docs = await getDocsForDateRange(params.start_date, params.end_date, '0');
@@ -428,12 +434,6 @@ export const getCategoryPerTon = async (params) => {
     const agg = {};
 
     const isWasteSection = targetSectionName === 'Waste';
-    
-    const getCleanKpiName = (rawName) => {
-        let name = rawName.replace(/\s*\/\s*Ton/i, '').replace(/ Consumed/i, '').trim();
-        if (name === 'Corn Starch') name = 'Starch';
-        return name;
-    };
 
     sdocs.forEach(d => {
         const sectionMatch = isOverall
