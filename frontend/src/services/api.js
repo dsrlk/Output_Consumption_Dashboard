@@ -510,6 +510,15 @@ export const getCategoryPerTon = async (params) => {
         });
     });
     
+    res.sort((a, b) => {
+        const idxA = kpis.findIndex(k => getCleanKpiName(k.name) === getCleanKpiName(a.kpi_name));
+        const idxB = kpis.findIndex(k => getCleanKpiName(k.name) === getCleanKpiName(b.kpi_name));
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return 0;
+    });
+    
     return res;
 };
 
@@ -719,25 +728,27 @@ export const getCategorySummary = async (params) => {
             // Ignore pre-calculated /Ton columns in Total View to prevent duplicate cards
             if (kpiName.toLowerCase().includes('/ton')) return;
             const cat = catMap[kpiName] || d.metrics[kpiName].category;
-            if (cat === params.category) {
-                if (!agg[kpiName]) {
-                    agg[kpiName] = { 
-                        kpi_name: kpiName, 
+            const isPercentage = isPct(d.metrics[kpiName]?.unit || unitMap[kpiName]);
+            if (cat === params.category || (params.category === 'Consumption' && isPercentage)) {
+                const cleanName = getCleanKpiName(kpiName);
+                if (!agg[cleanName]) {
+                    agg[cleanName] = { 
+                        kpi_name: cleanName, 
                         value: 0, 
                         count: 0, 
                         unit: d.metrics[kpiName].unit || unitMap[kpiName], 
                         kpi_id: KPI_LIST.find(k=>k.name===kpiName)?.id 
                     };
                 }
-                agg[kpiName].value += d.metrics[kpiName].value;
-                agg[kpiName].count += 1;
+                agg[cleanName].value += d.metrics[kpiName].value;
+                agg[cleanName].count += 1;
             }
         });
     });
     
     const working_days = wdSet.size;
     
-    return Object.values(agg).map(({ count, ...c }) => {
+    const res = Object.values(agg).map(({ count, ...c }) => {
         const isPercentage = isPct(c.unit);
         let finalValue = c.value;
         if (isPercentage && count > 0) {
@@ -751,4 +762,15 @@ export const getCategorySummary = async (params) => {
             total_weight_kg
         };
     });
-}
+
+    res.sort((a, b) => {
+        const idxA = kpis.findIndex(k => getCleanKpiName(k.name) === getCleanKpiName(a.kpi_name));
+        const idxB = kpis.findIndex(k => getCleanKpiName(k.name) === getCleanKpiName(b.kpi_name));
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return 0;
+    });
+
+    return res;
+};
