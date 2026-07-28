@@ -27,8 +27,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (password) => {
     try {
-      await verifyAuth(password);
-      localStorage.setItem('admin_token', password);
+      const clean = (password || '').trim();
+      await verifyAuth(clean);
+      localStorage.setItem('admin_token', clean);
       setIsAdmin(true);
       return true;
     } catch (e) {

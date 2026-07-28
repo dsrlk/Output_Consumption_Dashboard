@@ -13,19 +13,19 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (isAdmin) {
-      navigate(location.state?.from?.pathname || '/data-hub', { replace: true });
+      const target = location.state?.from?.pathname || '/data-hub';
+      navigate(target, { replace: true });
     }
   }, [isAdmin, navigate, location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!password || loading) return;
     setLoading(true);
     setError('');
 
     const success = await login(password);
-    if (success) {
-      navigate(location.state?.from?.pathname || '/data-hub', { replace: true });
-    } else {
+    if (!success) {
       setError('Invalid admin password');
       setLoading(false);
     }

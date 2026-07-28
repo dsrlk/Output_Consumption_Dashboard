@@ -3,9 +3,9 @@ import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where, orde
 
 import { processExcelFile } from '../utils/excelParser';
 
-// Auth is now local dummy or Firebase Auth. We keep a simple dummy for now.
 export const verifyAuth = async (password) => {
-    if (password === 'Exp-156@admin') {
+    const clean = (password || '').trim();
+    if (clean === 'Exp-156@admin') {
         return { success: true, token: 'Exp-156@admin' };
     }
     throw new Error('Invalid password');
