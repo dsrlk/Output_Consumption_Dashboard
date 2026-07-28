@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Navigate, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Lock } from 'lucide-react';
 
 const LoginPage = () => {
@@ -9,10 +9,13 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const { login, isAdmin } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  if (isAdmin) {
-    return <Navigate to={location.state?.from?.pathname || '/data-hub'} replace />;
-  }
+  useEffect(() => {
+    if (isAdmin) {
+      navigate(location.state?.from?.pathname || '/data-hub', { replace: true });
+    }
+  }, [isAdmin, navigate, location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,7 +23,9 @@ const LoginPage = () => {
     setError('');
 
     const success = await login(password);
-    if (!success) {
+    if (success) {
+      navigate(location.state?.from?.pathname || '/data-hub', { replace: true });
+    } else {
       setError('Invalid admin password');
       setLoading(false);
     }

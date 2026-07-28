@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { LayoutDashboard, BarChart2, Settings, LogOut, Lock } from 'lucide-react';
+import { LayoutDashboard, BarChart2, Settings, LogOut, Lock, User } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
 import DataHub from './pages/DataHub';
@@ -106,21 +106,45 @@ const TopBar = () => {
 
             <div
               className="avatar"
-              title={isAdmin ? 'Admin' : 'Login'}
+              title={isAdmin ? 'Admin Profile' : 'Click to Login'}
               onClick={() => { if (!isAdmin) navigate('/login'); }}
               style={{
+                position: 'relative',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 background: isAdmin
-                  ? 'linear-gradient(135deg, var(--primary), var(--primary-dim))'
-                  : 'rgba(255,255,255,0.08)',
-                color: '#fff',
-                fontWeight: 800,
-                fontSize: '0.82rem',
-                letterSpacing: '-0.02em',
-                userSelect: 'none',
+                  ? 'linear-gradient(135deg, #10b981, #059669)'
+                  : 'rgba(0, 0, 0, 0.06)',
+                color: isAdmin ? '#ffffff' : 'var(--text-muted)',
+                border: isAdmin ? '2px solid #10b981' : '1px solid var(--border-color)',
                 cursor: isAdmin ? 'default' : 'pointer',
+                transition: 'all 0.2s ease'
               }}
             >
-              {isAdmin ? 'A' : <Lock size={14} strokeWidth={2.5} />}
+              {isAdmin ? (
+                <User size={18} strokeWidth={2.2} />
+              ) : (
+                <Lock size={14} strokeWidth={2.5} />
+              )}
+              {isAdmin && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    bottom: '-1px',
+                    right: '-1px',
+                    width: '9px',
+                    height: '9px',
+                    borderRadius: '50%',
+                    background: '#22c55e',
+                    border: '2px solid var(--card-bg)'
+                  }}
+                  title="Admin Active"
+                />
+              )}
             </div>
           </div>
         </div>
