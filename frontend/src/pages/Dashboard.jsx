@@ -464,7 +464,7 @@ const SmartInsightsPanel = ({ categoryData, getDeviation, selectedCategory, sele
   const topPerformers = [];
 
   categoryData.forEach(kpi => {
-    if (kpi.value === 'N/A') return;
+    if (kpi.value === 'N/A' || kpi.value == null || (kpi.working_days === 0 && kpi.value === 0)) return;
     const dev = getDeviation(kpi);
     if (!dev) return;
     const item = { name: kpi.kpi_name, pct: dev.pct, raw: dev.raw, isGood: dev.isGood, isOutput: dev.isOutput };
@@ -971,7 +971,7 @@ const Dashboard = () => {
   }, [selectedSection, startDate, endDate]);
 
   const getDeviation = (kpi) => {
-    if (kpi.value == null || kpi.value === undefined) return null;
+    if (kpi.value == null || kpi.value === undefined || kpi.value === 'N/A' || (kpi.working_days === 0 && (kpi.value === 0 || kpi.value == null))) return null;
     const meta = standardsMeta[kpi.kpi_id];
     const std  = meta?.standard_value;
     const actualCategory = meta?.category || selectedCategory;

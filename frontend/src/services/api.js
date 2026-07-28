@@ -680,12 +680,16 @@ export const getCategorySummary = async (params) => {
             }
         });
         
-        const waste_val = waste_pct_count > 0 ? (waste_pct_sum / waste_pct_count) : null;
+        const waste_val   = waste_pct_count > 0 ? (waste_pct_sum / waste_pct_count) : null;
+        const hasCorrData = corr_wdSet.size > 0;
+        const corr_mt_val = hasCorrData ? round2(corr_kg / 1000) : null;
+        const fo_val      = hasCorrData ? round2(fo_l) : null;
+        const glue_val    = hasCorrData ? round2(glue_kg) : null;
         
         return [
-            { kpi_id: -1, kpi_name: "Corrugator MT", unit: "MT", value: round2(corr_kg / 1000), aggregation: "sum", working_days: corr_wdSet.size, total_weight_kg: corr_kg },
-            { kpi_id: -2, kpi_name: "Furnace Oil", unit: "Liters", value: round2(fo_l), aggregation: "sum", working_days: corr_wdSet.size, total_weight_kg: corr_kg },
-            { kpi_id: -3, kpi_name: "Glue", unit: "KG", value: round2(glue_kg), aggregation: "sum", working_days: null, total_weight_kg: corr_kg, pre_computed_period_std: null }, // we can leave pre_computed null for now
+            { kpi_id: -1, kpi_name: "Corrugator MT", unit: "MT", value: corr_mt_val, aggregation: "sum", working_days: corr_wdSet.size, total_weight_kg: corr_kg },
+            { kpi_id: -2, kpi_name: "Furnace Oil", unit: "Liters", value: fo_val, aggregation: "sum", working_days: corr_wdSet.size, total_weight_kg: corr_kg },
+            { kpi_id: -3, kpi_name: "Glue", unit: "KG", value: glue_val, aggregation: "sum", working_days: corr_wdSet.size, total_weight_kg: corr_kg, pre_computed_period_std: null },
             { kpi_id: -4, kpi_name: "Waste %", unit: "%", value: round2(waste_val), aggregation: "avg", working_days: factory_wdSet.size, total_weight_kg: corr_kg },
         ];
     }
