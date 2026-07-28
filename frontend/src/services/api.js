@@ -511,6 +511,11 @@ export const getCategoryPerTon = async (params) => {
     });
     
     res.sort((a, b) => {
+        const isPctA = isPct(a.unit);
+        const isPctB = isPct(b.unit);
+        if (!isPctA && isPctB) return -1;
+        if (isPctA && !isPctB) return 1;
+
         const idxA = kpis.findIndex(k => getCleanKpiName(k.name) === getCleanKpiName(a.kpi_name));
         const idxB = kpis.findIndex(k => getCleanKpiName(k.name) === getCleanKpiName(b.kpi_name));
         if (idxA !== -1 && idxB !== -1) return idxA - idxB;
@@ -764,6 +769,11 @@ export const getCategorySummary = async (params) => {
     });
 
     res.sort((a, b) => {
+        const isPctA = isPct(a.unit);
+        const isPctB = isPct(b.unit);
+        if (!isPctA && isPctB) return -1;
+        if (isPctA && !isPctB) return 1;
+
         const idxA = kpis.findIndex(k => getCleanKpiName(k.name) === getCleanKpiName(a.kpi_name));
         const idxB = kpis.findIndex(k => getCleanKpiName(k.name) === getCleanKpiName(b.kpi_name));
         if (idxA !== -1 && idxB !== -1) return idxA - idxB;
