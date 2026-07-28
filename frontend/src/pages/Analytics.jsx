@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getSections, getCategoryDailyMatrix, getCategoryPerTon, getCrossSectionSummary } from '../services/api';
+import { useFilters } from '../context/FilterContext';
 import { Filter, Zap, Info, Trophy, AlertTriangle, TrendingDown, Target, Building } from 'lucide-react';
 import { motion } from 'motion/react';
 import CustomSelect from '../components/CustomSelect';
@@ -242,10 +243,10 @@ const OverallView = ({ data, loading }) => {
             </span>
           </div>
           <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.03em', marginBottom: '0.2rem' }}>
-            {chartData.sort((a,b)=>b.output - a.output)[0]?.name || 'N/A'}
+            {[...chartData].sort((a,b)=>b.output - a.output)[0]?.name || 'N/A'}
           </div>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            <CountUp to={chartData.sort((a,b)=>b.output - a.output)[0]?.output || 0} duration={0.8} /> MT Total Output
+            <CountUp to={[...chartData].sort((a,b)=>b.output - a.output)[0]?.output || 0} duration={0.8} /> MT Total Output
           </div>
         </SpotlightCard>
       </div>
@@ -407,29 +408,34 @@ const Analytics = () => {
   }, [selectedDept, startDate, endDate]);
 
   // Derived calculations for Heatmap mode
-  const allDates = [...new Set([...outputMatrix.dates, ...consumMatrix.dates])].sort();
-  const weightSeries = outputMatrix.series.find(s => ['weight', 'total weight'].includes(s.kpi_name?.toLowerCase()));
+  const oDates = outputMatrix?.dates || [];
+  const cDates = consumMatrix?.dates || [];
+  const oSeries = outputMatrix?.series || [];
+  const cSeries = consumMatrix?.series || [];
+
+  const allDates = [...new Set([...oDates, ...cDates])].sort();
+  const weightSeries = oSeries.find(s => ['weight', 'total weight'].includes(s.kpi_name?.toLowerCase()));
   const heatmapRows = [];
 
   if (weightSeries) {
     heatmapRows.push({
       kpi: 'Output', unit: 'MT', isOutput: true,
       values: allDates.map(d => {
-        const i = outputMatrix.dates.indexOf(d);
-        const kg = i >= 0 ? weightSeries.values[i] : null;
+        const i = oDates.indexOf(d);
+        const kg = (i >= 0 && weightSeries?.values) ? weightSeries.values[i] : null;
         return kg != null && kg > 0 ? Math.round(kg / 10) / 100 : null;
       }),
     });
   }
 
-  consumMatrix.series
-    .filter(s => !EXCLUDE.has(s.kpi_name?.toLowerCase()) && s.values.some(v => v > 0))
+  cSeries
+    .filter(s => !EXCLUDE.has(s.kpi_name?.toLowerCase()) && (s.values || []).some(v => v > 0))
     .forEach(s => {
       heatmapRows.push({
         kpi: s.kpi_name, unit: s.unit, isOutput: false,
         values: allDates.map(d => {
-          const i = consumMatrix.dates.indexOf(d);
-          return i >= 0 ? (s.values[i] ?? null) : null;
+          const i = cDates.indexOf(d);
+          return (i >= 0 && s.values) ? (s.values[i] ?? null) : null;
         }),
       });
     });
