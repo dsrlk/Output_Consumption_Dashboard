@@ -485,18 +485,18 @@ export const getCategoryPerTon = async (params) => {
     
     const res = [];
     Object.values(agg).forEach(c => {
-        let val = 0;
+        let val = null;
         if (c.isPct) {
-            val = c.count > 0 ? c.totalRaw / c.count : 0;
+            val = c.count > 0 ? c.totalRaw / c.count : null;
         } else if (c.preComputedCount > 0 && c.totalRaw === 0) {
             val = c.preComputedSum / c.preComputedCount;
-        } else {
+        } else if (totalWeightTons > 0 && (c.totalRaw > 0 || c.count > 0)) {
             val = c.totalRaw / totalWeightTons;
         }
 
         const std = stds.find(s => (s.kpi_id === c.kpi_id || s.kpi_name === c.kpi_name) && s.period_type === 'ton');
         let deviation = null;
-        if (std && std.standard_value > 0) {
+        if (val != null && std && std.standard_value > 0) {
             deviation = ((val - std.standard_value) / std.standard_value) * 100;
         }
         res.push({
@@ -755,9 +755,9 @@ export const getCategorySummary = async (params) => {
     
     const res = Object.values(agg).map(({ count, ...c }) => {
         const isPercentage = isPct(c.unit);
-        let finalValue = c.value;
-        if (isPercentage && count > 0) {
-            finalValue = finalValue / count;
+        let finalValue = null;
+        if (count > 0) {
+            finalValue = isPercentage ? (c.value / count) : c.value;
         }
         return {
             ...c,

@@ -971,6 +971,7 @@ const Dashboard = () => {
   }, [selectedSection, startDate, endDate]);
 
   const getDeviation = (kpi) => {
+    if (kpi.value == null || kpi.value === undefined) return null;
     const meta = standardsMeta[kpi.kpi_id];
     const std  = meta?.standard_value;
     const actualCategory = meta?.category || selectedCategory;
@@ -1254,8 +1255,14 @@ const Dashboard = () => {
                   </div>
 
                   <div className="dribbble-value">
-                    {typeof kpi.value === 'number' ? <CountUp to={kpi.value} duration={0.8} /> : kpi.value}
-                    {kpi.unit && kpi.value !== 'N/A' ? <span style={{fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '4px'}}>{kpi.unit}</span> : ''}
+                    {kpi.value != null && typeof kpi.value === 'number' ? (
+                      <CountUp to={kpi.value} duration={0.8} />
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '1.25rem', fontWeight: 600 }}>N/A</span>
+                    )}
+                    {kpi.unit && kpi.value != null && kpi.value !== 'N/A' ? (
+                      <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '4px' }}>{kpi.unit}</span>
+                    ) : ''}
                   </div>
 
                   <div className="dribbble-footer">
@@ -1278,7 +1285,7 @@ const Dashboard = () => {
                     ) : (
                       <>
                         <span className="dribbble-trend-pill neutral">—</span>
-                        <span>{showPerTon ? 'Consumption rate' : 'Total captured range'}</span>
+                        <span>{kpi.value == null ? 'No data recorded' : (showPerTon ? 'Consumption rate' : 'Total captured range')}</span>
                       </>
                     )}
                   </div>
