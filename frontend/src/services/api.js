@@ -396,7 +396,7 @@ export const getCategoryPerTon = async (params) => {
     
     const isOverall = params.section_id === '0';
     const targetSectionName = isOverall ? 'Overall' : SECTIONS.find(s => s.id === parseInt(params.section_id))?.name;
-    const kpis = await getKPIs({ section_id: params.section_id });
+    const kpis = isOverall ? [...OVERALL_KPI_LIST, ...KPI_LIST] : await getKPIs({ section_id: params.section_id });
     
     const sdocs = docs.filter(d => !d.is_holiday);
     if (sdocs.length === 0) return [];
@@ -440,29 +440,39 @@ export const getCategoryPerTon = async (params) => {
         if (!sectionMatch) return;
         
         Object.keys(d.metrics).forEach(kpiName => {
-            const kpiInfo = kpis.find(k => k.name === kpiName);
+            const kpiInfo = kpis.find(k => k.name === kpiName || kpiName.startsWith(k.name));
             const cat = d.metrics[kpiName]?.category || kpiInfo?.category;
-            if (!kpiInfo || (cat !== 'Consumption' && cat !== 'Utilities')) return;
             if (kpiName.toLowerCase() === 'no of workers' || kpiName.toLowerCase() === 'hours worked') return;
-            if (isPct(d.metrics[kpiName].unit)) return;
             
-            if (!agg[kpiName]) agg[kpiName] = { kpi_id: kpiInfo.id, kpi_name: kpiName, total: 0, unit: `${d.metrics[kpiName].unit}/Ton` };
-            agg[kpiName].total += d.metrics[kpiName].value;
+            // Exclude pure output KPIs in per-ton view except Waste % which is a percentage
+            const isPercentage = isPct(d.metrics[kpiName]?.unit || kpiInfo?.unit);
+            if (!isPercentage && (cat === 'Output' || cat === 'Orders')) return;
+            
+            const rawUnit = d.metrics[kpiName]?.unit || kpiInfo?.unit || '';
+            const perTonUnit = isPercentage ? '%' : (rawUnit.includes('/Ton') ? rawUnit : `${rawUnit}/Ton`);
+            
+            // Map names nicely (e.g. Furnace Oil Consumed -> Furnace Oil)
+            let cleanName = kpiName;
+            if (kpiName === 'Furnace Oil Consumed') cleanName = 'Furnace Oil';
+
+            if (!agg[cleanName]) agg[cleanName] = { kpi_id: kpiInfo?.id || -99, kpi_name: cleanName, total: 0, count: 0, isPct: isPercentage, unit: perTonUnit };
+            agg[cleanName].total += d.metrics[kpiName].value;
+            agg[cleanName].count += 1;
         });
     });
     
     const res = [];
     Object.values(agg).forEach(c => {
-        const perTon = c.total / totalWeightTons;
+        const val = c.isPct ? (c.count > 0 ? c.total / c.count : 0) : (c.total / totalWeightTons);
         const std = stds.find(s => s.kpi_id === c.kpi_id && s.period_type === 'ton');
         let deviation = null;
         if (std && std.standard_value > 0) {
-            deviation = ((perTon - std.standard_value) / std.standard_value) * 100;
+            deviation = ((val - std.standard_value) / std.standard_value) * 100;
         }
         res.push({
             kpi_id: c.kpi_id,
             kpi_name: c.kpi_name,
-            value: round2(perTon),
+            value: round2(val),
             unit: c.unit,
             total_weight_tons: round2(totalWeightTons),
             aggregation: "per_ton",
@@ -471,7 +481,7 @@ export const getCategoryPerTon = async (params) => {
     });
     
     return res;
-}
+};
 
 export const getTrends = async (kpiId, params = {}) => {
     const docs = await getDocsForDateRange(params.start_date, params.end_date, '0');
