@@ -652,6 +652,13 @@ export const getCategorySummary = async (params) => {
         let glue_kg = 0;
         let waste_pct_sum = 0;
         let waste_pct_count = 0;
+        let water_sum = 0;
+        let water_count = 0;
+        let elec_sum = 0;
+        let elec_count = 0;
+        let wastewater_sum = 0;
+        let wastewater_count = 0;
+
         let corr_wdSet = new Set();
         let factory_wdSet = new Set();
         
@@ -678,19 +685,38 @@ export const getCategorySummary = async (params) => {
                 waste_pct_sum += d.metrics['Waste %'].value;
                 waste_pct_count += 1;
             }
+
+            Object.keys(d.metrics).forEach(kpi => {
+                if (kpi.includes('Water - Main Meter') || kpi.includes('Main Meter')) {
+                    water_sum += d.metrics[kpi].value;
+                    water_count += 1;
+                } else if (kpi.includes('Electricity Usage') || kpi.includes('Electricity')) {
+                    elec_sum += d.metrics[kpi].value;
+                    elec_count += 1;
+                } else if (kpi.includes('Wastewater Plant') || kpi.includes('Wastewater')) {
+                    wastewater_sum += d.metrics[kpi].value;
+                    wastewater_count += 1;
+                }
+            });
         });
         
-        const waste_val   = waste_pct_count > 0 ? (waste_pct_sum / waste_pct_count) : null;
-        const hasCorrData = corr_wdSet.size > 0;
-        const corr_mt_val = hasCorrData ? round2(corr_kg / 1000) : null;
-        const fo_val      = hasCorrData ? round2(fo_l) : null;
-        const glue_val    = hasCorrData ? round2(glue_kg) : null;
+        const waste_val      = waste_pct_count > 0 ? (waste_pct_sum / waste_pct_count) : null;
+        const hasCorrData    = corr_wdSet.size > 0;
+        const corr_mt_val    = hasCorrData ? round2(corr_kg / 1000) : null;
+        const fo_val         = hasCorrData ? round2(fo_l) : null;
+        const glue_val       = hasCorrData ? round2(glue_kg) : null;
+        const water_val      = water_count > 0 ? round2(water_sum) : null;
+        const elec_val       = elec_count > 0 ? round2(elec_sum) : null;
+        const wastewater_val = wastewater_count > 0 ? round2(wastewater_sum) : null;
         
         return [
             { kpi_id: -1, kpi_name: "Corrugator MT", unit: "MT", value: corr_mt_val, aggregation: "sum", working_days: corr_wdSet.size, total_weight_kg: corr_kg },
             { kpi_id: -2, kpi_name: "Furnace Oil", unit: "Liters", value: fo_val, aggregation: "sum", working_days: corr_wdSet.size, total_weight_kg: corr_kg },
             { kpi_id: -3, kpi_name: "Glue", unit: "KG", value: glue_val, aggregation: "sum", working_days: corr_wdSet.size, total_weight_kg: corr_kg, pre_computed_period_std: null },
             { kpi_id: -4, kpi_name: "Waste %", unit: "%", value: round2(waste_val), aggregation: "avg", working_days: factory_wdSet.size, total_weight_kg: corr_kg },
+            { kpi_id: -5, kpi_name: "Water - Main Meter", unit: "L", value: water_val, aggregation: "sum", working_days: water_count },
+            { kpi_id: -6, kpi_name: "Electricity Usage", unit: "kWh", value: elec_val, aggregation: "sum", working_days: elec_count },
+            { kpi_id: -7, kpi_name: "Wastewater Plant", unit: "L", value: wastewater_val, aggregation: "sum", working_days: wastewater_count },
         ];
     }
     
@@ -701,6 +727,24 @@ export const getCategorySummary = async (params) => {
     
     const agg = {};
     const targetSectionName = SECTIONS.find(s => s.id === parseInt(params.section_id))?.name;
+
+    // Pre-initialize configured section KPIs so all section cards display at all times
+    kpis.forEach(k => {
+        const isPercentage = isPct(k.unit);
+        if (k.category === params.category || (params.category === 'Consumption' && isPercentage)) {
+            if (k.name.toLowerCase() === 'no of workers' || k.name.toLowerCase() === 'hours worked') return;
+            const cleanName = getCleanKpiName(k.name);
+            if (!agg[cleanName]) {
+                agg[cleanName] = {
+                    kpi_name: cleanName,
+                    value: 0,
+                    count: 0,
+                    unit: k.unit,
+                    kpi_id: k.id
+                };
+            }
+        }
+    });
     
     let total_weight_kg = 0;
     let wdSet = new Set();
@@ -712,7 +756,6 @@ export const getCategorySummary = async (params) => {
     
     docs.forEach(d => {
         if (d.is_holiday) return;
-        // Waste section: accept both 'Waste' (new) and 'Overall' (legacy) docs for backward-compatibility
         const sectionMatch = isWasteSection
             ? (d.section === 'Waste' || d.section === 'Overall')
             : d.section === targetSectionName;
@@ -728,13 +771,11 @@ export const getCategorySummary = async (params) => {
         if (hasOutputKPIs) {
             if (dailyTotalWeight > 0) wdSet.add(d.date);
         } else {
-            // For sections without output (like Waste or Utilities), any day with data counts as a working day
             wdSet.add(d.date);
         }
         total_weight_kg += dailyTotalWeight;
         
         Object.keys(d.metrics).forEach(kpiName => {
-            // Ignore pre-calculated /Ton columns in Total View to prevent duplicate cards
             if (kpiName.toLowerCase().includes('/ton')) return;
             const cat = catMap[kpiName] || d.metrics[kpiName].category;
             const isPercentage = isPct(d.metrics[kpiName]?.unit || unitMap[kpiName]);
